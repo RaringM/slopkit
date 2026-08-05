@@ -42,16 +42,42 @@ const fw = m ? `${m[1].padStart(2, "0")}.${m[2].padStart(2, "0")}` : null;
 
 let entry = null;
 
+function fwNum(s) {
+    const p = s.split(".");
+    return parseInt(p[0], 10) * 100 + parseInt(p[1], 10);
+}
+
+// Nearest known firmware within the SAME major. Offsets are usually stable
+// across a major; if the build shifted, the kernel-base cross-check fails safe
+// (it simply won't fire rather than crashing).
+function nearest(data, target) {
+    const want = fwNum(target);
+    const maj = target.split(".")[0];
+    let best = null, bestd = 1e9;
+    for (const k in data) {
+        if (k.split(".")[0] !== maj) continue;
+        const d = Math.abs(fwNum(k) - want);
+        if (d < bestd) { bestd = d; best = k; }
+    }
+    return best;
+}
+
 fetch(OFFSETS_URL, { cache: "no-store" })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-        entry = fw ? data[fw] : null;
-        if (!fw) {
-            msg.textContent = "not a PS5 browser";
-        } else if (!entry) {
-            msg.textContent = `firmware ${fw} not supported`;
-        } else {
+        if (!fw) { msg.textContent = "not a PS5 browser"; return; }
+        entry = data[fw];
+        if (entry) {
             run.classList.remove("disabled");
+            return;
+        }
+        const near = nearest(data, fw);
+        if (near) {
+            entry = data[near];
+            msg.textContent = `${fw}: no exact offsets, trying ${near} (unverified)`;
+            run.classList.remove("disabled");
+        } else {
+            msg.textContent = `firmware ${fw} not supported`;
         }
     })
     .catch(function () {
