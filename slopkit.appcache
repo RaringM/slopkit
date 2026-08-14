@@ -1,0 +1,36 @@
+CACHE MANIFEST
+# slopkit static cache schema 1
+# version 5dbd5c96bb7f0fa889ecb0b6c822e76ce6be10bae8356b63e5f13231eda15f1f
+
+CACHE:
+/
+/cat.jpg
+/index.html
+/locales/es.json
+/notify.html
+/offsets/offsets.json
+/payloads/elfldr-ps5-0.24.elf
+/payloads/ps5-unified-autoloader-v0.1.3-78a6f02.elf
+/src/elf-loader-jit.js
+/src/i18n.js
+/src/ipv6-kernel-rw.js
+/src/kernel.js
+/src/lapse.js
+/src/memory.js
+/src/native.js
+/src/p2jb.js
+/src/payload-sender.js
+/src/pending-action.js
+/src/post.js
+/src/profile.js
+/src/rop.js
+/src/runtime.js
+/src/state.js
+/src/theme.css
+/src/u64.js
+
+FALLBACK:
+notify.html notify.html
+
+NETWORK:
+*
