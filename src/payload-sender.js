@@ -7,6 +7,7 @@
     const SEND_BUFFER_SIZE = 0x10000;
     const SEND_TIMEOUT_SECONDS = 15;
     const PAYLOAD_PORT = 9021;
+    const EADDRINUSE = 48;
     const UNIFIED_AUTOLOADER = Object.freeze({
         id: "unified-autoloader",
         kind: "unifiedAutoloader",
@@ -132,11 +133,13 @@
     }
 
     class PayloadSender {
-        constructor(kernel, profile) {
+        constructor(nativeTransport, profile) {
             if (!NS.NativeBridge)
                 throw new Error("native.js must be loaded before payload delivery");
-            this.kernel = kernel;
-            this.bridge = kernel.bridge;
+            if (!nativeTransport || !nativeTransport.bridge)
+                throw new Error("payload delivery requires a native transport");
+            this.transport = nativeTransport;
+            this.bridge = nativeTransport.bridge;
             this.profile = profile;
             this.sockaddr = null;
             this.optionBuf = null;
@@ -147,21 +150,11 @@
         }
 
         allocateBuffers() {
-            if (this.sockaddr) return;
+            this.allocateSockaddr();
             const alloc = (size, align, label) =>
-                this.kernel.alloc(size, align, label);
+                this.transport.alloc(size, align, label);
 
-            this.sockaddr = alloc(0x10, 4, "payload-sockaddr");
-            this.sockaddr.fill(0);
-            this.sockaddr.put8(0, 0x10);
-            this.sockaddr.put8(1, 2);
-            this.sockaddr.put8(2, (PAYLOAD_PORT >>> 8) & 0xff);
-            this.sockaddr.put8(3, PAYLOAD_PORT & 0xff);
-            this.sockaddr.put8(4, 127);
-            this.sockaddr.put8(5, 0);
-            this.sockaddr.put8(6, 0);
-            this.sockaddr.put8(7, 1);
-
+            if (this.optionBuf) return;
             this.optionBuf = alloc(4, 4, "payload-sockopt");
             this.optionBuf.fill(0);
             this.optionBuf.put8(0, 1);
@@ -171,6 +164,60 @@
             this.timeoutBuf.put64(0, SEND_TIMEOUT_SECONDS);
 
             this.sendBuf = alloc(SEND_BUFFER_SIZE, 0x10, "payload-sendbuf");
+        }
+
+        allocateSockaddr() {
+            if (this.sockaddr) return;
+            if (typeof this.transport.alloc !== "function")
+                throw new Error("payload delivery allocator is unavailable");
+            this.sockaddr = this.transport.alloc(
+                0x10, 4, "payload-sockaddr");
+            this.sockaddr.fill(0);
+            this.sockaddr.put8(0, 0x10);
+            this.sockaddr.put8(1, 2);
+            this.sockaddr.put8(2, (PAYLOAD_PORT >>> 8) & 0xff);
+            this.sockaddr.put8(3, PAYLOAD_PORT & 0xff);
+            this.sockaddr.put8(4, 127);
+            this.sockaddr.put8(5, 0);
+            this.sockaddr.put8(6, 0);
+            this.sockaddr.put8(7, 1);
+        }
+
+        lastErrno() {
+            try {
+                const pointer = this.bridge.callOffset(
+                    "native.exports.error", []);
+                return this.bridge.memory.read32(pointer.toPointerNumber()) | 0;
+            } catch { return null; }
+        }
+
+        probeExistingLoader() {
+            this.allocateSockaddr();
+            const K = this.profile.raw.kernel.constants;
+            const call = (path, args) =>
+                this.bridge.callOffsetI32(`native.exports.${path}`, args);
+            const fd = call("socket", [K.afInet, K.sockStream, 0]);
+            if (fd < 0) {
+                const errno = this.lastErrno();
+                throw new Error("elfldr probe socket failed"
+                    + `: result=${fd} errno=${errno ?? "unavailable"}`);
+            }
+            let result;
+            let errno = null;
+            try {
+                result = call("bind", [fd, this.sockaddr.address, 0x10]);
+                if (result !== 0) errno = this.lastErrno();
+            } finally {
+                const closeResult = call("close", [fd]);
+                if (closeResult !== 0)
+                    throw new Error(`elfldr probe close(${fd}) failed: ${closeResult}`);
+            }
+            if (result === 0)
+                return { present: false, port: PAYLOAD_PORT, errno: null };
+            if (errno === EADDRINUSE)
+                return { present: true, port: PAYLOAD_PORT, errno };
+            throw new Error("elfldr probe bind failed"
+                + `: result=${result} errno=${errno ?? "unavailable"}`);
         }
 
         async fetchPayload(url, artifact) {
@@ -291,5 +338,6 @@
     if (typeof module !== "undefined" && module.exports)
         module.exports = { PayloadSender,
             PayloadSettings: NS.PayloadSettings, PostActions: NS.PostActions,
-            UNIFIED_AUTOLOADER, validateActionRegistry };
+            UNIFIED_AUTOLOADER, PAYLOAD_PORT, EADDRINUSE,
+            validateActionRegistry };
 })(typeof globalThis !== "undefined" ? globalThis : this);

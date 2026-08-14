@@ -6,6 +6,11 @@
     const ATTEMPTS_KEY = "slopkit:stats";
     const SETTINGS_VERSION = 4;
     const ATTEMPTS_VERSION = 3;
+    const POST_EXPLOIT_VERSION = 1;
+    const KERNEL_STATE_PREFIX = "slopkit:kernel-state:";
+    const BOOT_GUARD_PREFIX = "slopkit:kernel-boot-guard:";
+    const RECOVERY_REQUEST_PREFIX = "slopkit:post-exploit-request:";
+    const RECOVERY_ARM_PREFIX = "slopkit:post-exploit-arm:";
     const MAX_DETAIL_RECORDS = 128;
     const MAX_COUNT = Number.MAX_SAFE_INTEGER;
     const EXPLOIT_ORDER = Object.freeze(["poops", "lapse", "p2jb"]);
@@ -24,6 +29,13 @@
     function configuredStorage(options) {
         if (options && owns(options, "storage")) return options.storage;
         try { return root.localStorage || null; }
+        catch { return null; }
+    }
+
+    function configuredSessionStorage(options) {
+        if (options && owns(options, "sessionStorage"))
+            return options.sessionStorage;
+        try { return root.sessionStorage || null; }
         catch { return null; }
     }
 
@@ -102,6 +114,26 @@
         if (typeof value !== "string") return null;
         const normalized = value.trim();
         return normalized ? normalized.slice(0, maximum) : null;
+    }
+
+    function recoveryToken() {
+        const words = new Uint32Array(4);
+        try {
+            if (root.crypto && typeof root.crypto.getRandomValues === "function")
+                root.crypto.getRandomValues(words);
+            else throw new Error("crypto unavailable");
+        } catch {
+            for (let index = 0; index < words.length; ++index)
+                words[index] = (Math.random() * 0x100000000) >>> 0;
+        }
+        return Array.from(words, function (word) {
+            return word.toString(16).padStart(8, "0");
+        }).join("");
+    }
+
+    function validRecoveryToken(value) {
+        return typeof value === "string" && /^[a-f0-9]{32}$/i.test(value)
+            ? value.toLowerCase() : null;
     }
 
     function copyAttemptContext(target, source) {
@@ -910,6 +942,420 @@
             recover, reset });
     }
 
+    function postExploitKey(firmware) {
+        return `${KERNEL_STATE_PREFIX}${firmware}`;
+    }
+
+    function bootGuardKey(firmware) {
+        return `${BOOT_GUARD_PREFIX}${firmware}`;
+    }
+
+    function validBootIdentity(value) {
+        return typeof value === "string"
+            && /^boottime-v1:(?:[a-f0-9]{2}){8,32}$/i.test(value)
+            ? value.toLowerCase() : null;
+    }
+
+    function completionIdentity(source) {
+        if (!source || typeof source !== "object" || Array.isArray(source))
+            return null;
+        const firmware = validFirmware(source.firmware);
+        const exploit = validSettingExploit(source.exploit);
+        const attemptId = validAttemptId(source.attemptId);
+        const bootId = validBootIdentity(source.bootId);
+        const buildId = safeText(source.buildId, 120);
+        const profileRevision = safeText(source.profileRevision, 120);
+        const engineRevision = safeText(source.engineRevision, 120);
+        const runtimeRevision = safeText(source.runtimeRevision, 120);
+        if (source.postExploitVersion !== POST_EXPLOIT_VERSION
+                || source.state !== "complete" || source.mode !== "full"
+                || source.rebootRequired !== false
+                || source.recoveryDisposition !== "sealed"
+                || !firmware || !exploit || !attemptId || !bootId
+                || !buildId || !profileRevision || !engineRevision
+                || !runtimeRevision)
+            return null;
+        const identity = { firmware, exploit, attemptId, bootId, buildId,
+            profileRevision, engineRevision, runtimeRevision };
+        if (source.runtimeDigest !== undefined) {
+            const runtimeDigest = safeText(source.runtimeDigest, 64);
+            if (!/^[a-f0-9]{64}$/.test(runtimeDigest || "")) return null;
+            identity.runtimeDigest = runtimeDigest;
+        }
+        return identity;
+    }
+
+    function sameCompletionIdentity(left, right) {
+        const a = completionIdentity(left) || left;
+        const b = completionIdentity(right) || right;
+        if (!a || !b) return false;
+        for (const field of ["firmware", "exploit", "attemptId", "bootId",
+            "buildId", "profileRevision", "engineRevision",
+            "runtimeRevision", "runtimeDigest"]) {
+            if ((a[field] || null) !== (b[field] || null)) return false;
+        }
+        return true;
+    }
+
+    function readPostExploitRecord(firmware, options) {
+        const local = configuredStorage(options);
+        const stored = readStorage(local, postExploitKey(firmware));
+        return stored.available ? parseObject(stored.value) : null;
+    }
+
+    function inspectPostExploit(firmwareValue, options) {
+        const firmware = validFirmware(firmwareValue);
+        if (!firmware) return { status: "invalid", reason: "firmware" };
+        const local = configuredStorage(options);
+        const stored = readStorage(local, postExploitKey(firmware));
+        if (!stored.available)
+            return { status: "invalid", reason: "storage" };
+        if (stored.value === null) return { status: "none" };
+        const record = parseObject(stored.value);
+        if (!record || record.firmware !== firmware
+                || !completionIdentity(record))
+            return { status: "invalid", reason: "completion-record",
+                record };
+
+        const bootGuard = parseObject(readStorage(local,
+            bootGuardKey(firmware)).value);
+        if (!bootGuard || bootGuard.state !== "kernel-attempt-started"
+                || bootGuard.firmware !== record.firmware
+                || bootGuard.exploit !== record.exploit
+                || bootGuard.attemptId !== record.attemptId
+                || bootGuard.bootId !== record.bootId)
+            return { status: "invalid", reason: "boot-guard", record };
+
+        const attempts = readAttempts(local, false);
+        const attempt = attempts.records.find(function (candidate) {
+            return candidate.id === record.attemptId;
+        });
+        if (!attempt || attempt.status !== "success"
+                || attempt.firmware !== record.firmware
+                || attempt.exploit !== record.exploit
+                || attempt.terminalStage !== "elfldr-ready"
+                || attempt.rebootRequired !== false
+                || attempt.recoveryDisposition !== "sealed"
+                || attempt.buildId !== record.buildId
+                || attempt.profileRevision !== record.profileRevision
+                || attempt.engineRevision !== record.engineRevision
+                || attempt.runtimeRevision !== record.runtimeRevision
+                || (attempt.runtimeDigest || null)
+                    !== (record.runtimeDigest || null))
+            return { status: "invalid", reason: "attempt", record };
+
+        const expectedBuild = safeText(options?.buildId, 120);
+        if (expectedBuild && expectedBuild !== record.buildId)
+            return { status: "incompatible", reason: "build", record,
+                bootGuard, attempt: cloneRecord(attempt) };
+        const expectedBinding = options?.profileBinding;
+        if (expectedBinding) {
+            for (const field of ["exploit", "profileRevision",
+                "engineRevision", "runtimeRevision", "runtimeDigest"]) {
+                if ((expectedBinding[field] || null)
+                        !== (record[field] || null))
+                    return { status: "incompatible", reason: field, record,
+                        bootGuard, attempt: cloneRecord(attempt) };
+            }
+        }
+        if (record.postExploit?.unavailable)
+            return { status: "disabled",
+                reason: record.postExploit.unavailable.reason || "unavailable",
+                record, bootGuard, attempt: cloneRecord(attempt) };
+        return { status: "ready", record, bootGuard,
+            attempt: cloneRecord(attempt) };
+    }
+
+    function sealPostExploit(details, options) {
+        if (!details || typeof details !== "object" || Array.isArray(details))
+            throw new TypeError("post-exploit completion details are required");
+        const firmware = validFirmware(details.firmware);
+        if (!firmware) throw new TypeError("post-exploit firmware is invalid");
+        const local = configuredStorage(options);
+        const previous = readPostExploitRecord(firmware, options) || {};
+        const source = Object.assign({}, previous, details, {
+            postExploitVersion: POST_EXPLOIT_VERSION,
+            state: "complete", mode: "full", rebootRequired: false,
+            recoveryDisposition: "sealed"
+        });
+        const identity = completionIdentity(source);
+        if (!identity)
+            throw new TypeError("post-exploit completion identity is invalid");
+        const now = new Date().toISOString();
+        const record = Object.assign({}, source, identity, {
+            postExploitVersion: POST_EXPLOIT_VERSION,
+            state: "complete", mode: "full", rebootRequired: false,
+            recoveryDisposition: "sealed",
+            completedAt: safeText(source.completedAt, 64) || now,
+            updated: now,
+            postExploit: {}
+        });
+        if (!writeStorage(local, postExploitKey(firmware), record))
+            throw new Error("persistent post-exploit completion is unavailable");
+        return record;
+    }
+
+    function updatePostExploit(firmwareValue, updater, options) {
+        const firmware = validFirmware(firmwareValue);
+        const local = configuredStorage(options);
+        const record = readPostExploitRecord(firmware, options);
+        const identity = completionIdentity(record);
+        if (!firmware || !identity)
+            throw new Error("sealed post-exploit completion is unavailable");
+        const next = Object.assign({}, record, {
+            postExploit: Object.assign({}, record.postExploit || {})
+        });
+        updater(next.postExploit, next);
+        if (!sameCompletionIdentity(identity, next)
+                || next.state !== "complete" || next.mode !== "full"
+                || next.rebootRequired !== false
+                || next.recoveryDisposition !== "sealed")
+            throw new Error("post-exploit completion identity changed");
+        next.updated = new Date().toISOString();
+        if (!writeStorage(local, postExploitKey(firmware), next))
+            throw new Error("post-exploit completion update failed");
+        return next;
+    }
+
+    function notePostExploitAction(firmware, details, options) {
+        const actionId = safeText(details?.actionId, 64);
+        const outcome = details?.outcome;
+        if (!actionId || !["sent", "failed"].includes(outcome))
+            throw new TypeError("post-exploit action result is invalid");
+        return updatePostExploit(firmware, function (metadata) {
+            metadata.lastAction = {
+                actionId, outcome, at: new Date().toISOString()
+            };
+            if (Number.isSafeInteger(details.bytes) && details.bytes >= 0)
+                metadata.lastAction.bytes = details.bytes;
+        }, options);
+    }
+
+    function disablePostExploit(firmware, reasonValue, options) {
+        const reason = safeText(reasonValue, 80);
+        if (!reason) throw new TypeError("post-exploit disable reason is invalid");
+        return updatePostExploit(firmware, function (metadata, record) {
+            metadata.unavailable = {
+                reason, bootId: record.bootId, at: new Date().toISOString()
+            };
+        }, options);
+    }
+
+    function retirePostExploit(firmwareValue, expectedBootId,
+            observedBootId, options) {
+        const firmware = validFirmware(firmwareValue);
+        const expected = validBootIdentity(expectedBootId);
+        const observed = validBootIdentity(observedBootId);
+        const local = configuredStorage(options);
+        const record = readPostExploitRecord(firmware, options);
+        if (!firmware || !expected || !observed || expected === observed
+                || completionIdentity(record)?.bootId !== expected)
+            throw new Error("post-exploit reboot proof is invalid");
+        if (!removeStorage(local, postExploitKey(firmware)))
+            throw new Error("stale post-exploit completion could not be retired");
+        return { firmware, attemptId: record.attemptId,
+            previousBootId: expected, observedBootId: observed };
+    }
+
+    function requestRecord(source) {
+        if (!source || source.version !== POST_EXPLOIT_VERSION
+                || source.kind !== "request") return null;
+        const token = validRecoveryToken(source.token);
+        const firmware = validFirmware(source.firmware);
+        const attemptId = validAttemptId(source.attemptId);
+        const actionId = safeText(source.actionId, 64);
+        const purpose = ["launch", "verify-boot"].includes(source.purpose)
+            ? source.purpose : null;
+        if (!token || !firmware || !attemptId
+                || actionId !== "unified-autoloader" || !purpose) return null;
+        return Object.assign({}, source, { token, firmware, attemptId,
+            actionId, purpose });
+    }
+
+    function createRecoveryRequest(details, options) {
+        const inspection = inspectPostExploit(details?.firmware, options);
+        if (!["ready", "disabled"].includes(inspection.status))
+            throw new Error("post-exploit recovery is not available");
+        const actionId = details?.actionId || "unified-autoloader";
+        if (actionId !== "unified-autoloader")
+            throw new TypeError("post-exploit recovery action is invalid");
+        const purpose = details?.purpose || (inspection.status === "disabled"
+            ? "verify-boot" : "launch");
+        if (!["launch", "verify-boot"].includes(purpose)
+                || (purpose === "launch" && inspection.status !== "ready"))
+            throw new TypeError("post-exploit recovery purpose is invalid");
+        const session = configuredSessionStorage(options);
+        const token = recoveryToken();
+        const record = {
+            version: POST_EXPLOIT_VERSION, kind: "request", token,
+            firmware: inspection.record.firmware,
+            attemptId: inspection.record.attemptId,
+            actionId,
+            purpose,
+            createdAt: Date.now()
+        };
+        if (!writeStorage(session, `${RECOVERY_REQUEST_PREFIX}${token}`, record))
+            throw new Error("post-exploit recovery request could not be armed");
+        return token;
+    }
+
+    function consumeRecoveryRequest(tokenValue, options) {
+        const token = validRecoveryToken(tokenValue);
+        const session = configuredSessionStorage(options);
+        if (!token) return null;
+        const key = `${RECOVERY_REQUEST_PREFIX}${token}`;
+        const record = requestRecord(parseObject(readStorage(session, key).value));
+        if (!record || !removeStorage(session, key)) return null;
+        const inspection = inspectPostExploit(record.firmware, options);
+        if (!["ready", "disabled"].includes(inspection.status)
+                || inspection.record.attemptId !== record.attemptId)
+            return null;
+        return Object.assign({}, record, { completion: inspection.record });
+    }
+
+    function armRecord(source) {
+        if (!source || source.version !== POST_EXPLOIT_VERSION
+                || source.kind !== "arm"
+                || source.mode !== "post-exploit-recovery") return null;
+        const token = validRecoveryToken(source.token);
+        const firmware = validFirmware(source.firmware);
+        const exploit = validSettingExploit(source.exploit);
+        const attemptId = validAttemptId(source.attemptId);
+        const bootId = validBootIdentity(source.bootId);
+        const actionId = safeText(source.actionId, 64);
+        const purpose = ["launch", "verify-boot"].includes(source.purpose)
+            ? source.purpose : null;
+        const buildId = safeText(source.buildId, 120);
+        const profileRevision = safeText(source.profileRevision, 120);
+        const engineRevision = safeText(source.engineRevision, 120);
+        const runtimeRevision = safeText(source.runtimeRevision, 120);
+        if (!token || !firmware || !exploit || !attemptId || !bootId
+                || actionId !== "unified-autoloader" || !purpose || !buildId
+                || !profileRevision || !engineRevision || !runtimeRevision)
+            return null;
+        const record = Object.assign({}, source, { token, firmware, exploit,
+            attemptId, bootId, actionId, buildId, profileRevision,
+            engineRevision, runtimeRevision, purpose });
+        if (source.runtimeDigest !== undefined) {
+            if (!/^[a-f0-9]{64}$/.test(source.runtimeDigest)) return null;
+            record.runtimeDigest = source.runtimeDigest;
+        }
+        return record;
+    }
+
+    function createRecoveryArm(details, options) {
+        const completion = details?.completion;
+        const identity = completionIdentity(completion);
+        if (!identity || details?.actionId !== "unified-autoloader"
+                || !["launch", "verify-boot"].includes(details?.purpose))
+            throw new TypeError("post-exploit recovery arm is invalid");
+        const inspection = inspectPostExploit(identity.firmware, options);
+        if (!["ready", "disabled"].includes(inspection.status)
+                || (details.purpose === "launch"
+                    && inspection.status !== "ready")
+                || !sameCompletionIdentity(inspection.record, completion))
+            throw new Error("post-exploit completion changed before arming");
+        const session = configuredSessionStorage(options);
+        const token = recoveryToken();
+        const record = Object.assign({
+            version: POST_EXPLOIT_VERSION, kind: "arm", token,
+            mode: "post-exploit-recovery",
+            actionId: details.actionId, purpose: details.purpose,
+            createdAt: Date.now()
+        }, identity);
+        if (!writeStorage(session, `${RECOVERY_ARM_PREFIX}${token}`, record))
+            throw new Error("post-exploit renderer arm could not be stored");
+        return token;
+    }
+
+    function readRecoveryArm(tokenValue, options) {
+        const token = validRecoveryToken(tokenValue);
+        if (!token) return null;
+        const session = configuredSessionStorage(options);
+        return armRecord(parseObject(readStorage(session,
+            `${RECOVERY_ARM_PREFIX}${token}`).value));
+    }
+
+    function validRecoveryWarmup(value) {
+        return value?.version === 1
+            && value.method === "unarmed-precritical-placement-pairs-v1"
+            && value.historyRead === false
+            && value.historyReadIntercepts === 1
+            && value.reportIntercepts === 1
+            && value.released === true
+            && value.placementPairs === 4;
+    }
+
+    function attestRecoveryArm(tokenValue, warmup, options) {
+        const token = validRecoveryToken(tokenValue);
+        const session = configuredSessionStorage(options);
+        const record = readRecoveryArm(token, options);
+        if (!record || warmup?.historyRead !== false
+                || warmup.historyReadIntercepts !== 1
+                || warmup.reportIntercepts !== 1
+                || warmup.released !== true || warmup.placementPairs !== 4)
+            throw new Error("post-exploit renderer warmup is invalid");
+        record.rendererWarmup = {
+            version: 1, method: "unarmed-precritical-placement-pairs-v1",
+            historyRead: false, historyReadIntercepts: 1,
+            reportIntercepts: 1, released: true, placementPairs: 4
+        };
+        if (!writeStorage(session, `${RECOVERY_ARM_PREFIX}${token}`, record))
+            throw new Error("post-exploit renderer warmup could not be stored");
+        return record;
+    }
+
+    function consumeRecoveryArm(tokenValue, expected, options) {
+        const token = validRecoveryToken(tokenValue);
+        const session = configuredSessionStorage(options);
+        const record = readRecoveryArm(token, options);
+        if (!record || !validRecoveryWarmup(record.rendererWarmup)) return null;
+        for (const field of ["firmware", "exploit", "attemptId", "bootId",
+            "buildId", "profileRevision", "engineRevision",
+            "runtimeRevision", "runtimeDigest", "actionId", "purpose"]) {
+            if ((expected?.[field] || null) !== (record[field] || null))
+                return null;
+        }
+        const inspection = inspectPostExploit(record.firmware, options);
+        if (!["ready", "disabled"].includes(inspection.status)
+                || !sameCompletionIdentity(inspection.record, record)
+                || !removeStorage(session, `${RECOVERY_ARM_PREFIX}${token}`))
+            return null;
+        return record;
+    }
+
+    function clearRecoverySession(options) {
+        const session = configuredSessionStorage(options);
+        if (!session || typeof session.length !== "number") return false;
+        try {
+            for (let index = session.length - 1; index >= 0; --index) {
+                const key = session.key(index);
+                if (key?.startsWith(RECOVERY_REQUEST_PREFIX)
+                        || key?.startsWith(RECOVERY_ARM_PREFIX))
+                    session.removeItem(key);
+            }
+            return true;
+        } catch { return false; }
+    }
+
+    const PostExploitRecovery = Object.freeze({
+        VERSION: POST_EXPLOIT_VERSION,
+        REQUEST_PREFIX: RECOVERY_REQUEST_PREFIX,
+        ARM_PREFIX: RECOVERY_ARM_PREFIX,
+        inspect: inspectPostExploit,
+        seal: sealPostExploit,
+        noteAction: notePostExploitAction,
+        disable: disablePostExploit,
+        retire: retirePostExploit,
+        createRequest: createRecoveryRequest,
+        consumeRequest: consumeRecoveryRequest,
+        createArm: createRecoveryArm,
+        readArm: readRecoveryArm,
+        attestArm: attestRecoveryArm,
+        consumeArm: consumeRecoveryArm,
+        clearSession: clearRecoverySession
+    });
+
     const Settings = Object.freeze({
         KEY: SETTINGS_KEY,
         VERSION: SETTINGS_VERSION,
@@ -967,6 +1413,8 @@
     NS.Settings = Settings;
     NS.Attempts = Attempts;
     NS.ExploitSelection = ExploitSelection;
+    NS.PostExploitRecovery = PostExploitRecovery;
     if (typeof module !== "undefined" && module.exports)
-        module.exports = { Settings, Attempts, ExploitSelection };
+        module.exports = { Settings, Attempts, ExploitSelection,
+            PostExploitRecovery };
 })(typeof globalThis !== "undefined" ? globalThis : this);

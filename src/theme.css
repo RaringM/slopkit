@@ -58,6 +58,175 @@ button:focus, .button:focus, input:focus, select:focus {
 }
 .tone-ok { border-color: var(--success-border); }
 .tone-bad { border-color: var(--danger-border); }
+
+/* Shared launcher chrome. Both pages use the same toolbar and dialogs; the
+   runtime page keeps its copies painted so damaged WebKit only composites an
+   existing surface when one is opened. */
+.toolbar {
+    position: fixed; top: 10px; inset-inline-start: 10px; z-index: 10;
+    display: flex; gap: 8px;
+}
+.toolbar button {
+    width: 60px; height: 60px; min-height: 0; padding: 0;
+    color: var(--muted);
+    display: grid; place-items: center; cursor: pointer;
+}
+.toolbar button:hover, .toolbar button:focus { color: var(--text); }
+.toolbar button.open {
+    color: var(--text); border-color: var(--primary); background: var(--raised);
+}
+.toolbar svg { width: 24px; height: 24px; fill: currentColor; }
+body.modal-open > main,
+body.modal-open > .toolbar {
+    pointer-events: none;
+}
+body.modal-open { overflow: hidden; }
+.modal-backdrop {
+    position: fixed; inset: 0; z-index: 20;
+    background: rgba(0,0,0,.65);
+    display: grid; place-items: start;
+    padding: 12px 14px;
+    overflow: hidden;
+}
+.modal-backdrop.runtime-prepaint {
+    opacity: .001; pointer-events: none;
+}
+.modal-backdrop.runtime-prepaint.open {
+    opacity: 1; pointer-events: none;
+}
+.modal {
+    width: min(820px, 100%); max-height: calc(100vh - 24px);
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0,0,0,.6);
+}
+.modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h2 {
+    margin: 0; font-size: 28px; font-weight: 700; color: var(--text);
+}
+.modal-close {
+    width: 60px; height: 60px; min-height: 0; padding: 0;
+    color: var(--muted);
+    font-size: 22px; line-height: 1;
+    display: grid; place-items: center; cursor: pointer;
+}
+.modal-close:hover, .modal-close:focus { color: #fff; }
+.modal h3 {
+    margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--muted);
+}
+.modal p {
+    margin: 0; color: var(--muted); font-size: 18px; line-height: 1.4;
+}
+.modal button:not(.modal-close) {
+    width: 100%; padding: 12px 18px; font-size: 20px; cursor: pointer;
+}
+.modal button.danger {
+    background: var(--danger-bg); border-color: var(--danger-border);
+    color: var(--danger-text);
+}
+.modal button:disabled { opacity: .38; cursor: default; }
+.modal ul {
+    margin: 0; padding-inline-start: 20px; color: var(--muted);
+    font-size: 17px; line-height: 1.4;
+}
+.fw-list {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    list-style: none; padding: 0;
+}
+.fw-list li {
+    padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--raised); color: var(--text); font-size: 16px;
+    font-family: monospace;
+}
+.settings-row {
+    display: flex; align-items: center; gap: 12px;
+    min-height: 64px; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--raised); cursor: pointer;
+}
+.settings-row span {
+    flex: 1; color: var(--muted); font-size: 18px; cursor: pointer;
+}
+.settings-copy { flex: 1; display: grid; gap: 3px; color: var(--muted); }
+.settings-copy span { font-size: 18px; }
+.settings-copy small { color: var(--muted); font-size: 14px; }
+.settings-pickers {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+.settings-picker, #language-section {
+    display: flex; flex-direction: column; gap: 6px;
+}
+.settings-options {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.info-grid {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.info-block {
+    min-width: 0; padding: 12px; border-radius: 10px; background: var(--bg);
+}
+.info-block + .info-block { margin: 0; }
+.info-section + .info-section { margin-top: 12px; }
+.credits-list {
+    list-style: none; padding: 0 !important;
+    display: flex; flex-wrap: wrap; gap: 5px 14px;
+}
+.stats-breakdown {
+    list-style: none; padding: 0; display: grid; gap: 8px;
+}
+.stats-breakdown li {
+    padding: 10px 12px; border-radius: 10px; background: var(--raised);
+    font: 17px/1.3 "Consolas", monospace;
+}
+.info-link {
+    min-height: 60px; padding: 12px 18px;
+    border: 1px solid var(--primary); border-radius: 10px;
+    background: var(--raised); color: var(--text);
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700; text-decoration: none;
+}
+.info-link:focus {
+    outline: 4px solid var(--focus); outline-offset: 3px;
+    border-color: var(--focus); box-shadow: none;
+}
+#reset-stats { min-height: 60px; }
+.settings-row input[type="checkbox"] {
+    width: 28px; height: 28px; accent-color: var(--primary); cursor: pointer;
+}
+.settings-section {
+    margin: 0; font-size: 16px; font-weight: 600; color: var(--text);
+}
+#exploit-select, #language-select {
+    width: 100%; min-height: 60px; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: 10px;
+    background: var(--raised); color: var(--text);
+    font-size: 18px; font-weight: 600; cursor: pointer;
+}
+button:focus { border-color: var(--focus); }
+.modal-close:focus { outline-offset: 2px; }
+.settings-row:focus-within {
+    outline: 4px solid var(--focus); outline-offset: 2px;
+    border-color: var(--focus); background: var(--raised);
+}
+#exploit-select:focus, #language-select:focus {
+    outline-offset: 2px; border-color: var(--focus); background: var(--raised);
+}
+input[type="checkbox"]:focus {
+    outline: 4px solid var(--focus); outline-offset: 3px;
+}
+@media (max-width: 700px) {
+    .settings-options, .info-grid { grid-template-columns: 1fr; }
+}
+@media (max-height: 700px) {
+    .modal { padding: 16px; gap: 10px; }
+    .settings-row { min-height: 60px; }
+}
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition: none !important; }
 }

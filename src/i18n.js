@@ -22,7 +22,7 @@
         "launcher.clearCold": "I powered off and restarted",
         "launcher.settings.exploit": "Exploit",
         "launcher.settings.autoAutoloader":
-            "Auto-launch Unified Autoloader",
+            "Auto-launch Autoloader",
         "launcher.pending.queued": "Requested action queued: {action}",
         "launcher.pending.cancel": "Cancel",
         "launcher.settings.diagnostics": "Show console",
@@ -36,6 +36,9 @@
         "launcher.stats.row": "{exploit}: {wins}/{total} ({rate}%)",
         "launcher.status.preparing": "Preparing…",
         "launcher.status.starting": "Starting…",
+        "launcher.status.reconnecting": "Reconnecting to completed boot…",
+        "launcher.status.checkingBoot":
+            "Checking current boot · Kernel exploit will not run…",
         "launcher.status.ready": "Firmware {firmware} · Ready",
         "launcher.status.browserRequired": "PS5 browser required",
         "launcher.status.exploitUnavailable":
@@ -62,7 +65,9 @@
         "runtime.stage.startingElfldr": "Starting elfldr",
         "runtime.stage.startingRequestedAction": "Sending requested action",
         "runtime.stage.startingAutoloader":
-            "Sending Unified Autoloader",
+            "Sending Autoloader",
+        "runtime.stage.reconnecting": "Reconnecting",
+        "runtime.stage.checkingBoot": "Checking current boot",
         "runtime.stage.complete": "Complete",
         "runtime.stage.preview": "UI preview",
         "runtime.stage.stopped": "Stopped",
@@ -83,6 +88,27 @@
         "runtime.status.preview": "Preview only · No exploit will run",
         "runtime.status.browserUnsupported": "Browser not supported",
         "runtime.status.autoloaderStarting": "Handing off…",
+        "runtime.status.reconnecting":
+            "Reacquiring userland access · Kernel exploit will not run",
+        "runtime.status.checkingBoot":
+            "Reading native boot identity · Kernel exploit and elfldr probe will not run",
+        "runtime.status.recoveryReady":
+            "This boot completed successfully · Post-exploit actions are available",
+        "runtime.status.autoloaderAlreadyLaunched":
+            "Autoloader was already launched on this boot · Launch it again only if needed",
+        "runtime.status.recoveryFailed":
+            "Couldn’t reconnect · The completed exploit is unchanged",
+        "runtime.status.recoveryIncompatible":
+            "This completion belongs to another SlopKit build or profile",
+        "runtime.status.recoveryUnavailable":
+            "Recovery is unavailable on this boot · Reboot before starting again",
+        "runtime.status.loaderMissing":
+            "elfldr is no longer listening · Reboot before starting again",
+        "runtime.status.loaderProbeFailed":
+            "Couldn’t safely verify elfldr · Reboot before starting again",
+        "runtime.status.bootIdentityUnavailable":
+            "Couldn’t verify the current boot · Reboot before starting again",
+        "runtime.recovery.checkBoot": "Check current boot",
         "runtime.diagnostics.heading": "Console",
         "runtime.actions.heading": "Post-exploit actions",
         "runtime.requested.title": "Requested action",
@@ -94,14 +120,15 @@
         "runtime.requested.unavailable": "Requested action unavailable",
         "runtime.requested.sentStatus": "Check the PS5 notification",
         "runtime.requested.failedStatus": "Retry without rebooting",
-        "runtime.autoloader.heading": "Unified Autoloader",
-        "runtime.autoloader.launch": "Launch Unified Autoloader",
-        "runtime.autoloader.launching": "Sending Unified Autoloader…",
-        "runtime.autoloader.retry": "Retry Unified Autoloader",
-        "runtime.autoloader.failed": "Couldn’t send Unified Autoloader",
-        "runtime.autoloader.sent": "Unified Autoloader sent",
+        "runtime.autoloader.heading": "Autoloader",
+        "runtime.autoloader.launch": "Launch Autoloader",
+        "runtime.autoloader.launchAgain": "Launch Autoloader Again",
+        "runtime.autoloader.launching": "Sending Autoloader…",
+        "runtime.autoloader.retry": "Retry Autoloader",
+        "runtime.autoloader.failed": "Couldn’t send Autoloader",
+        "runtime.autoloader.sent": "Autoloader sent",
         "runtime.autoloader.unavailable":
-            "Unified Autoloader unavailable",
+            "Autoloader unavailable",
         "runtime.autoloader.failedStatus": "Retry without rebooting",
         "runtime.payload.launchAction": "Launch {action}",
         "runtime.payload.launching": "Launching…",

@@ -10,6 +10,7 @@
 body {
     display: flex; flex-direction: column; align-items: center;
     min-height: 100vh; padding: 18px 12px;
+    user-select: none; -webkit-user-select: none;
 }
 #cap {
     margin-bottom: 14px; color: var(--text);
@@ -17,10 +18,14 @@ body {
     text-align: center;
 }
 #cat {
-    display: block; width: 280px; max-width: 80vw;
+    display: block; width: 280px; height: 280px;
+    max-width: 80vw; max-height: 80vw;
     border: 1px solid var(--border); border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0,0,0,.28);
+    pointer-events: none; user-select: none; -webkit-user-select: none;
+    background: url("cat.jpg") center / cover no-repeat;
 }
+body.runtime-terminal #cat { display: none; }
 #result {
     width: min(800px, 92vw); margin-top: 16px; padding: 20px;
     text-align: center;
@@ -82,6 +87,52 @@ body {
     margin: 0 0 8px; color: var(--text);
     font-size: 16px; line-height: 1.2; font-weight: 700;
 }
+#runtime-page {
+    width: 100%; display: flex; flex-direction: column; align-items: center;
+    pointer-events: none;
+}
+.post-action { pointer-events: auto; }
+.post-action[aria-disabled="true"] { pointer-events: none; }
+.runtime-toolbar {
+    display: flex !important; visibility: visible !important;
+    opacity: 1 !important;
+}
+.runtime-modal-footer-close {
+    width: 100% !important; min-height: 60px; height: auto;
+    padding: 12px 18px !important; font-size: 20px !important;
+}
+.runtime-modal-control[tabindex="-1"] { outline: none; }
+/*
+ * PS5 spatial navigation follows pointer hit-test regions in addition to
+ * ordinary focusable elements.  After exploitation, large painted boxes can
+ * otherwise become dead-end cursor destinations.  Keep the backdrop and all
+ * presentational dialog content out of hit testing, then opt in only the
+ * controls a user can actually activate.  Settings rows remain whole-card
+ * targets because their labels toggle the contained checkbox.
+ */
+.modal-backdrop.runtime-prepaint.open,
+.modal-backdrop.runtime-prepaint.open .modal,
+.modal-backdrop.runtime-prepaint.open .modal * {
+    pointer-events: none;
+}
+.modal-backdrop.runtime-prepaint.open .runtime-modal-control,
+.modal-backdrop.runtime-prepaint.open .settings-row {
+    pointer-events: auto;
+}
+.modal-backdrop.runtime-prepaint.open .runtime-modal-control:disabled,
+.modal-backdrop.runtime-prepaint.open .runtime-modal-control[aria-disabled="true"],
+.modal-backdrop.runtime-prepaint.open .settings-row.runtime-modal-target-disabled {
+    pointer-events: none;
+}
+.modal-backdrop.runtime-prepaint .modal {
+    overflow-y: hidden;
+}
+.modal-backdrop.runtime-prepaint .fw-list li {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
 @supports (display: grid) {
     .post-action-list {
         display: grid;
@@ -91,7 +142,7 @@ body {
 @media (max-height: 800px) {
     body { padding-top: 10px; }
     #cap { margin-bottom: 8px; }
-    #cat { width: 200px; }
+    #cat { width: 200px; height: 200px; }
     #result { margin-top: 10px; padding: 16px; }
     #post-actions { margin-top: 12px; }
     #scr { max-height: 160px; }
@@ -102,8 +153,120 @@ body {
 </style>
 </head>
 <body>
+<!-- Persistent page chrome is parsed before exploitation; no toolbar DOM is
+     allocated after the renderer or kernel stages begin. -->
+<div id="runtime-toolbar" class="toolbar runtime-toolbar">
+    <button id="gear" type="button"
+            data-i18n-aria-label="common.settings" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.14 12.94a7.07 7.07 0 0 0 .06-.94c0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7.04 7.04 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 9.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.37 1.03.7 1.62.94l.36 2.54c.05.24.26.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.03-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"/></svg>
+    </button>
+    <button id="info" type="button"
+            data-i18n-aria-label="common.about" aria-expanded="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    </button>
+</div>
+<div id="settings-modal" class="modal-backdrop runtime-prepaint"
+     aria-hidden="true" tabindex="-1">
+    <div class="modal surface" role="dialog" aria-modal="true"
+         aria-labelledby="settings-heading">
+        <div class="modal-header">
+            <h2 id="settings-heading" data-i18n="common.settings"></h2>
+            <button class="modal-close runtime-modal-control" type="button"
+                    id="settings-close" data-close="settings-modal"
+                    tabindex="-1"
+                    data-i18n-aria-label="common.close">&times;</button>
+        </div>
+        <div class="settings-pickers">
+            <div class="settings-picker">
+                <label class="settings-section" for="exploit-select"
+                       data-i18n="launcher.settings.exploit"></label>
+                <select id="exploit-select" class="runtime-modal-control"
+                        tabindex="-1" disabled>
+                    <option value="poops" data-i18n="exploit.option.poops"></option>
+                    <option value="lapse" data-i18n="exploit.option.lapse"></option>
+                    <option value="p2jb" data-i18n="exploit.option.p2jb"></option>
+                </select>
+            </div>
+            <div id="language-section">
+                <label class="settings-section" for="language-select"
+                       data-i18n="language.label"></label>
+                <select id="language-select" class="runtime-modal-control"
+                        tabindex="-1" disabled></select>
+            </div>
+        </div>
+        <div class="settings-options">
+            <label class="settings-row">
+                <input type="checkbox" id="opt-autoloader"
+                       class="runtime-modal-control" tabindex="-1" disabled>
+                <span data-i18n="launcher.settings.autoAutoloader"></span>
+            </label>
+            <label class="settings-row">
+                <input type="checkbox" id="opt-diagnostics"
+                       class="runtime-modal-control" tabindex="-1" disabled>
+                <span data-i18n="launcher.settings.diagnostics"></span>
+            </label>
+        </div>
+        <button class="modal-close runtime-modal-footer-close runtime-modal-control"
+                type="button" data-close="settings-modal"
+                data-initial-focus tabindex="-1"
+                data-i18n="common.close"></button>
+    </div>
+</div>
+<div id="info-modal" class="modal-backdrop runtime-prepaint"
+     aria-hidden="true" tabindex="-1">
+    <div class="modal surface" role="dialog" aria-modal="true"
+         aria-labelledby="about-heading">
+        <div class="modal-header">
+            <h2 id="about-heading" data-i18n="common.about"></h2>
+            <button class="modal-close runtime-modal-control" type="button"
+                    id="info-close" data-close="info-modal"
+                    tabindex="-1"
+                    data-i18n-aria-label="common.close">&times;</button>
+        </div>
+        <div class="info-grid">
+            <section class="info-block">
+                <h3 data-i18n="launcher.about.reliability"></h3>
+                <ul id="stats-breakdown" class="stats-breakdown">
+                    <li data-runtime-stat="lapse">Lapse: No attempts</li>
+                    <li data-runtime-stat="poops">POOPS: No attempts</li>
+                    <li data-runtime-stat="p2jb">P2JB: No attempts</li>
+                </ul>
+            </section>
+            <section class="info-block">
+                <div class="info-section">
+                    <h3 id="fw-heading"></h3>
+                    <ul class="fw-list" id="fw-list">
+                        <li data-runtime-fw-placeholder>None</li>
+                    </ul>
+                </div>
+                <div class="info-section">
+                    <h3 data-i18n="launcher.about.credits"></h3>
+                    <ul class="credits-list">
+                        <li>jordyidk</li>
+                        <li>itsPLK</li>
+                        <li>john-tornblom</li>
+                        <li>Gezine</li>
+                        <li>TheFlow</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+        <button id="reset-stats" class="danger runtime-modal-control"
+                type="button" tabindex="-1" disabled
+                data-i18n="launcher.about.reset"></button>
+        <a class="info-link runtime-modal-control"
+           href="https://git.richey.dev/miles/slopkit"
+           target="_blank" rel="noopener noreferrer" tabindex="-1"
+           data-i18n="launcher.about.source"></a>
+        <button class="modal-close runtime-modal-footer-close runtime-modal-control"
+                type="button" data-close="info-modal"
+                data-initial-focus tabindex="-1"
+                data-i18n="common.close"></button>
+    </div>
+</div>
+<main id="runtime-page">
 <div id="cap">slopkit</div>
-<img id="cat" class="run" src="cat.jpg" alt="">
+<div id="cat" class="run" tabindex="-1" aria-hidden="true"></div>
 <section id="result" class="surface">
     <div id="result-status" role="status" aria-live="polite" aria-atomic="true">
         <h1 id="stage-banner"></h1>
@@ -128,7 +291,7 @@ body {
                 <a class="button primary post-action post-action-primary"
                    role="button" tabindex="-1" aria-disabled="true"
                    data-post-action-primary data-i18n="runtime.autoloader.launch"
-                   aria-describedby="status">Launch Unified Autoloader</a>
+                   aria-describedby="status">Launch Autoloader</a>
             </div>
             <div class="post-action-item" data-post-action-slot hidden>
                 <a class="button primary post-action post-action-primary"
@@ -147,6 +310,7 @@ body {
     <h2 id="diagnostics-heading" data-i18n="runtime.diagnostics.heading">Console</h2>
     <pre id="scr"></pre>
 </section>
+</main>
 <script src="src/i18n.js"></script>
 <script src="src/state.js"></script>
 <script src="src/u64.js"></script>
@@ -187,6 +351,39 @@ const postActionSlots = Array.from(postActionList.querySelectorAll(
     };
 });
 const diagnosticsNode = document.getElementById("diagnostics");
+const runtimeToolbar = document.getElementById("runtime-toolbar");
+const runtimeSettingsButton = document.getElementById("gear");
+const runtimeInfoButton = document.getElementById("info");
+const runtimeSettingsModal = document.getElementById("settings-modal");
+const runtimeInfoModal = document.getElementById("info-modal");
+const runtimeExploitSelect = document.getElementById("exploit-select");
+const runtimeLanguageSection = document.getElementById("language-section");
+const runtimeLanguageSelect = document.getElementById("language-select");
+const runtimeAutoloaderOption = document.getElementById("opt-autoloader");
+const runtimeDiagnosticsOption = document.getElementById("opt-diagnostics");
+const runtimeResetStatsButton = document.getElementById("reset-stats");
+const runtimeFirmwareHeading = document.getElementById("fw-heading");
+const runtimeFirmwareList = document.getElementById("fw-list");
+const runtimeStatRows = Array.from(document.querySelectorAll(
+    "[data-runtime-stat]"));
+const runtimeModalControls = new Map([
+    [runtimeSettingsModal, Array.from(runtimeSettingsModal.querySelectorAll(
+        ".runtime-modal-control"))],
+    [runtimeInfoModal, Array.from(runtimeInfoModal.querySelectorAll(
+        ".runtime-modal-control"))]
+]);
+let runtimeDatabase = null;
+let runtimeDatabaseError = null;
+let runtimeLanguagePreference = "auto";
+let runtimeSettingsLocked = true;
+const runtimeDatabaseReady = Slopkit.Profile.loadDatabase(OFFSETS_URL)
+    .then(function (database) {
+        runtimeDatabase = database;
+        return database;
+    }, function (error) {
+        runtimeDatabaseError = error;
+        return null;
+    });
 let payloadActionBusy = false;
 let postActionModel = [];
 let postActionNotice = null;
@@ -330,9 +527,12 @@ const scratchDouble = new Float64Array(scratchBits);
 const navigationID = Date.now().toString(36);
 const singleAttemptPolicy = Q.get("auto") === "0" && Q.get("max") === "1";
 const armed = Q.get("go") === "1";
+const RECOVERY_FLOW = Q.get("flow") === "recovery";
+const RECOVERY_ARMED = armed && RECOVERY_FLOW;
+const FULL_CHAIN_ARMED = armed && !RECOVERY_FLOW;
 const PREVIEW_MODE = Q.get("preview") || "";
 const COMPLETE_PREVIEW = !armed && PREVIEW_MODE === "complete";
-const POST_ACTION_PREVIEW = !armed
+let POST_ACTION_PREVIEW = !armed
     && (PREVIEW_MODE === "actions" || COMPLETE_PREVIEW);
 const POST_ACTION_REVEAL_DELAY_MS = 750;
 const runToken = Q.get("run") || "";
@@ -446,22 +646,45 @@ const FW_LABEL = (function () {
     return m ? m[1] : "??.??";
 })();
 
+const POST_EXPLOIT_BASE = Slopkit.PostExploitRecovery?.inspect(FW_LABEL)
+    || { status: "none" };
+const POST_EXPLOIT_RECORD = POST_EXPLOIT_BASE.record || null;
+const EXPLICIT_RECOVERY_VIEW = !armed && Q.get("recovery") === "view"
+    && (!Q.get("attempt")
+        || Q.get("attempt") === POST_EXPLOIT_RECORD?.attemptId);
+const DIRECT_COMPLETION_REFRESH = FULL_CHAIN_ARMED
+    && Q.get("arm") === POST_EXPLOIT_RECORD?.attemptId;
+const RECOVERY_VIEW = Boolean(POST_EXPLOIT_RECORD
+    && ["ready", "disabled", "incompatible"].includes(
+        POST_EXPLOIT_BASE.status)
+    && (EXPLICIT_RECOVERY_VIEW || DIRECT_COMPLETION_REFRESH));
+POST_ACTION_PREVIEW = POST_ACTION_PREVIEW || RECOVERY_VIEW;
+
 // The launcher's arm record is the durable attempt identity. Read it
 // without mutating storage so early renderer failures use the same tuple as
 // attempt_started, before the profile fetch has completed.
 let ARM_CONTEXT_ERROR = "";
 const ARM_CONTEXT = (function () {
     try {
+        if (!armed) return {};
         const id = Q.get("arm") || "";
         if (!/^[0-9a-f]{32}$/i.test(id)) {
             ARM_CONTEXT_ERROR = "renderer arm token is invalid";
             return {};
         }
-        const value = JSON.parse(sessionStorage.getItem(
-            `slopkit:arm:${id}`) || "null");
+        const value = RECOVERY_ARMED
+            ? Slopkit.PostExploitRecovery?.readArm(id)
+            : JSON.parse(sessionStorage.getItem(
+                `slopkit:arm:${id}`) || "null");
+        const expectedMode = RECOVERY_ARMED
+            ? "post-exploit-recovery" : "full-chain";
         if (!value || value.firmware !== FW_LABEL
-            || value.mode !== "full-chain"
-            || value.exploit !== SELECTED_EXPLOIT) {
+            || value.mode !== expectedMode
+            || value.exploit !== SELECTED_EXPLOIT
+            || (RECOVERY_ARMED
+                && (value.actionId !== "unified-autoloader"
+                    || value.actionId !== Q.get("action")
+                    || value.purpose !== Q.get("purpose")))) {
             ARM_CONTEXT_ERROR =
                 "renderer arm token is bound to another exploit profile";
             return {};
@@ -480,11 +703,18 @@ function verifyArmContextProfile(profile) {
         || profile.exploit !== SELECTED_EXPLOIT)
         throw new Error("renderer profile does not match the armed launch");
     const qualification = profile.qualificationRecord?.();
-    if (!qualification
-        || ARM_CONTEXT.profileRevision !== qualification.profileRevision
-        || ARM_CONTEXT.engineRevision !== qualification.engineRevision
-        || ARM_CONTEXT.runtimeRevision !== qualification.runtimeRevision)
+    const verificationOnly = RECOVERY_ARMED
+        && ARM_CONTEXT.purpose === "verify-boot";
+    if (!qualification || (!verificationOnly
+        && (ARM_CONTEXT.profileRevision !== qualification.profileRevision
+            || ARM_CONTEXT.engineRevision !== qualification.engineRevision
+            || ARM_CONTEXT.runtimeRevision !== qualification.runtimeRevision)))
         throw new Error("renderer arm token has stale profile revisions");
+    if (RECOVERY_ARMED
+            && ((!verificationOnly
+                && ARM_CONTEXT.buildId !== (Q.get("build") || "dev"))
+                || ARM_CONTEXT.attemptId !== POST_EXPLOIT_RECORD?.attemptId))
+        throw new Error("post-exploit recovery arm has stale completion context");
     return true;
 }
 
@@ -511,6 +741,16 @@ function setStageBanner(text, cls) {
             + (String(cls || "").split(/\s+/).includes("bad") ? " tone-bad"
                 : String(cls || "").split(/\s+/).includes("ok")
                     ? " tone-ok" : "");
+        const terminalClasses = String(cls || "").split(/\s+/);
+        if (terminalClasses.includes("complete")) {
+            document.body.classList.add("runtime-terminal");
+            renderRuntimeStatsBreakdown();
+            setRuntimeSettingsLocked(false);
+        } else if (terminalClasses.includes("bad")) {
+            document.body.classList.add("runtime-terminal");
+            renderRuntimeStatsBreakdown();
+            setRuntimeSettingsLocked(false);
+        }
     } catch {}
 }
 
@@ -547,11 +787,371 @@ function screenLine(text, severity, unabridged) {
     } catch {}
 }
 
-const DIAGNOSTICS_ON = Q.get("diag") === "1";
+let DIAGNOSTICS_ON = Q.get("diag") === "1";
 const QUIET_LAPSE_UI = SELECTED_EXPLOIT === "lapse";
 let diagnosticsQuiet = false;
 const deferredDiagnostics = [];
 diagnosticsNode.hidden = !DIAGNOSTICS_ON;
+runtimeToolbar.hidden = false;
+
+let activeRuntimeModal = null;
+let runtimeBackgroundState = null;
+const RUNTIME_EXPLOIT_NAMES = Object.freeze({
+    poops: "POOPS", lapse: "Lapse", p2jb: "P2JB"
+});
+function runtimeModalButton(modal) {
+    return modal === runtimeSettingsModal
+        ? runtimeSettingsButton : runtimeInfoButton;
+}
+function runtimeModalFocusables(modal) {
+    return Array.from(modal.querySelectorAll(
+        "select, input, button, a[href], [tabindex]:not([tabindex='-1'])"))
+        .filter(function (element) {
+            return !element.disabled && !element.hidden
+                && element.getAttribute("aria-hidden") !== "true"
+                && element.offsetParent !== null;
+        });
+}
+
+function restoreRuntimeAttribute(element, name, value) {
+    if (value === null) element.removeAttribute(name);
+    else element.setAttribute(name, value);
+}
+
+function setRuntimeBackgroundLocked(locked) {
+    if (locked) {
+        if (runtimeBackgroundState) return;
+        runtimeBackgroundState = [document.getElementById("runtime-page"),
+            runtimeToolbar].map(function (region) {
+            const focusables = Array.from(region.querySelectorAll(
+                "button, input, select, textarea, a[href], [tabindex]"))
+                .map(function (element) {
+                    const tabindex = element.getAttribute("tabindex");
+                    const disabled = typeof element.disabled === "boolean"
+                        ? element.disabled : null;
+                    element.setAttribute("tabindex", "-1");
+                    if (disabled !== null) element.disabled = true;
+                    return { element, tabindex, disabled };
+                });
+            const state = {
+                region,
+                ariaHidden: region.getAttribute("aria-hidden"),
+                focusables
+            };
+            region.setAttribute("aria-hidden", "true");
+            return state;
+        });
+        document.body.classList.add("modal-open");
+        return;
+    }
+    if (!runtimeBackgroundState) return;
+    for (const state of runtimeBackgroundState) {
+        restoreRuntimeAttribute(state.region, "aria-hidden", state.ariaHidden);
+        for (const entry of state.focusables) {
+            restoreRuntimeAttribute(entry.element, "tabindex", entry.tabindex);
+            if (entry.disabled !== null)
+                entry.element.disabled = entry.disabled;
+        }
+    }
+    runtimeBackgroundState = null;
+    document.body.classList.remove("modal-open");
+}
+
+function setRuntimeBackgroundTabIndex(element, value) {
+    if (runtimeBackgroundState) {
+        for (const state of runtimeBackgroundState) {
+            const entry = state.focusables.find(function (candidate) {
+                return candidate.element === element;
+            });
+            if (entry) {
+                entry.tabindex = value < 0 ? "-1" : "0";
+                element.setAttribute("tabindex", "-1");
+                return;
+            }
+        }
+    }
+    element.tabIndex = value;
+}
+
+function applyRuntimeModalControlState(modal, open) {
+    const controls = runtimeModalControls.get(modal) || [];
+    for (const control of controls) {
+        const close = control.classList.contains("modal-close");
+        let disabled = close ? false : !open;
+        if (open && !close) {
+            if (modal === runtimeSettingsModal) {
+                disabled = runtimeSettingsLocked;
+            } else if (control === runtimeResetStatsButton) {
+                disabled = runtimeSettingsLocked;
+            } else {
+                disabled = runtimeSettingsLocked;
+            }
+        }
+        if (typeof control.disabled === "boolean")
+            control.disabled = disabled;
+        if (control.tagName === "A") {
+            control.setAttribute("aria-disabled", disabled ? "true" : "false");
+            control.style.pointerEvents = disabled ? "none" : "auto";
+        }
+        const settingsRow = control.parentElement;
+        if (settingsRow
+                && settingsRow.classList.contains("settings-row")) {
+            settingsRow.classList.toggle(
+                "runtime-modal-target-disabled", disabled);
+            settingsRow.setAttribute("aria-disabled",
+                disabled ? "true" : "false");
+        }
+        if (close) control.setAttribute("tabindex", open ? "0" : "-1");
+        else if (disabled) control.setAttribute("tabindex", "-1");
+        else control.removeAttribute("tabindex");
+    }
+}
+
+function setRuntimeModalButtonState(modal, open) {
+    const button = runtimeModalButton(modal);
+    if (open) button.classList.add("open");
+    else button.classList.remove("open");
+    button.setAttribute("aria-expanded", open ? "true" : "false");
+    const labelKey = modal === runtimeSettingsModal
+        ? "common.settings" : "common.about";
+    button.setAttribute("aria-label", t(labelKey));
+}
+
+function closeRuntimeModal(modal, restoreFocus) {
+    if (!modal || !modal.classList.contains("open")) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    applyRuntimeModalControlState(modal, false);
+    setRuntimeBackgroundLocked(false);
+    modal.hidden = true;
+    const button = runtimeModalButton(modal);
+    setRuntimeModalButtonState(modal, false);
+    if (activeRuntimeModal === modal) activeRuntimeModal = null;
+    if (restoreFocus !== false) {
+        try { button.focus(); } catch {}
+    }
+}
+function openRuntimeModal(modal) {
+    const other = modal === runtimeSettingsModal
+        ? runtimeInfoModal : runtimeSettingsModal;
+    closeRuntimeModal(other, false);
+    modal.hidden = false;
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    activeRuntimeModal = modal;
+    applyRuntimeModalControlState(modal, true);
+    setRuntimeBackgroundLocked(true);
+    const button = runtimeModalButton(modal);
+    setRuntimeModalButtonState(modal, true);
+    const focusable = runtimeModalFocusables(modal);
+    const initial = modal.querySelector("[data-initial-focus]")
+        || focusable[0];
+    try { initial?.focus(); } catch {}
+}
+function toggleRuntimeModal(modal) {
+    if (!modal.classList.contains("open")) openRuntimeModal(modal);
+    else closeRuntimeModal(modal, true);
+}
+
+function parkRuntimeModal(modal) {
+    if (modal.classList.contains("open")) return;
+    // Resolve the populated dialog's layout once while the renderer is still
+    // healthy, then remove every closed control from PS5 spatial navigation.
+    try { void modal.offsetHeight; } catch {}
+    modal.hidden = true;
+}
+
+function populateRuntimeLanguageSelect() {
+    const locales = I18n.availableLocales();
+    if (!runtimeLanguageSelect.children.length) {
+        const automatic = document.createElement("option");
+        automatic.value = "auto";
+        runtimeLanguageSelect.appendChild(automatic);
+        for (const locale of locales) {
+            const option = document.createElement("option");
+            option.value = locale.locale;
+            option.textContent = locale.label;
+            runtimeLanguageSelect.appendChild(option);
+        }
+    }
+    runtimeLanguageSelect.options[0].textContent = t("language.auto");
+    const supported = runtimeLanguagePreference === "auto"
+        || locales.some(function (entry) {
+            return entry.locale === runtimeLanguagePreference;
+        });
+    if (!supported) runtimeLanguagePreference = "auto";
+    runtimeLanguageSelect.value = runtimeLanguagePreference;
+    runtimeLanguageSection.hidden = locales.length <= 1;
+}
+
+function renderRuntimeStatsBreakdown() {
+    let summaries;
+    try { summaries = Slopkit.Attempts.summaries(); }
+    catch { summaries = { exploits: {} }; }
+    for (const row of runtimeStatRows) {
+        const exploit = row.dataset.runtimeStat;
+        const item = summaries.exploits?.[exploit]
+            || { attempts: 0, successes: 0 };
+        const name = RUNTIME_EXPLOIT_NAMES[exploit] || exploit;
+        if (!item.attempts) {
+            row.textContent = `${name}: ${t("launcher.stats.none")}`;
+        } else {
+            const rate = Math.round((item.successes / item.attempts) * 100);
+            row.textContent = t("launcher.stats.row", {
+                exploit: name,
+                wins: item.successes,
+                total: item.attempts,
+                rate
+            });
+        }
+    }
+}
+
+function renderRuntimeFirmwareList() {
+    const exploit = runtimeExploitSelect.value || SELECTED_EXPLOIT;
+    const name = RUNTIME_EXPLOIT_NAMES[exploit] || exploit;
+    runtimeFirmwareHeading.textContent = t("launcher.about.firmware", {
+        exploit: name
+    });
+    const firmwares = runtimeDatabase
+        ? Slopkit.Profile.supportedFirmwares(runtimeDatabase, exploit) : [];
+    const values = firmwares.length ? firmwares : [t("launcher.about.none")];
+    while (runtimeFirmwareList.children.length < values.length) {
+        const item = document.createElement("li");
+        runtimeFirmwareList.appendChild(item);
+    }
+    for (let index = 0; index < runtimeFirmwareList.children.length; ++index) {
+        const item = runtimeFirmwareList.children[index];
+        const visible = index < values.length;
+        if (visible) item.textContent = values[index];
+        item.hidden = !visible;
+    }
+}
+
+function saveRuntimeSettings() {
+    try {
+        Slopkit.Settings.update({
+            exploit: runtimeExploitSelect.value,
+            autoLaunchAutoloader: runtimeAutoloaderOption.checked,
+            detailedDiagnostics: runtimeDiagnosticsOption.checked,
+            language: runtimeLanguagePreference
+        });
+        return true;
+    } catch { return false; }
+}
+
+function setRuntimeSettingsLocked(locked) {
+    runtimeSettingsLocked = locked === true;
+    applyRuntimeModalControlState(runtimeSettingsModal,
+        runtimeSettingsModal.classList.contains("open"));
+    applyRuntimeModalControlState(runtimeInfoModal,
+        runtimeInfoModal.classList.contains("open"));
+}
+
+try {
+    const runtimeSettings = Slopkit.Settings.load();
+    runtimeExploitSelect.value = VALID_EXPLOITS.has(runtimeSettings.exploit)
+        ? runtimeSettings.exploit : SELECTED_EXPLOIT;
+    runtimeAutoloaderOption.checked
+        = runtimeSettings.autoLaunchAutoloader === true;
+    runtimeDiagnosticsOption.checked = DIAGNOSTICS_ON;
+    runtimeLanguagePreference = typeof runtimeSettings.language === "string"
+        ? runtimeSettings.language.toLowerCase() : "auto";
+} catch {
+    runtimeExploitSelect.value = SELECTED_EXPLOIT;
+    runtimeAutoloaderOption.checked = false;
+    runtimeDiagnosticsOption.checked = DIAGNOSTICS_ON;
+    runtimeLanguagePreference = "auto";
+}
+applyRuntimeModalControlState(runtimeSettingsModal, false);
+applyRuntimeModalControlState(runtimeInfoModal, false);
+setRuntimeSettingsLocked(armed && !RECOVERY_VIEW);
+
+runtimeSettingsButton.addEventListener("click", function () {
+    toggleRuntimeModal(runtimeSettingsModal);
+});
+runtimeInfoButton.addEventListener("click", function () {
+    renderRuntimeStatsBreakdown();
+    toggleRuntimeModal(runtimeInfoModal);
+});
+runtimeAutoloaderOption.addEventListener("change", function () {
+    const next = runtimeAutoloaderOption.checked;
+    if (!saveRuntimeSettings())
+        runtimeAutoloaderOption.checked = !next;
+});
+runtimeDiagnosticsOption.addEventListener("change", function () {
+    const next = runtimeDiagnosticsOption.checked;
+    if (!saveRuntimeSettings()) {
+        runtimeDiagnosticsOption.checked = !next;
+        return;
+    }
+    DIAGNOSTICS_ON = next;
+    diagnosticsNode.hidden = !next;
+    if (next) setDiagnosticsQuiet(false);
+});
+runtimeExploitSelect.addEventListener("change", function () {
+        renderRuntimeFirmwareList();
+    if (!saveRuntimeSettings()) runtimeExploitSelect.value = SELECTED_EXPLOIT;
+    applyRuntimeModalControlState(runtimeSettingsModal, true);
+});
+runtimeLanguageSelect.addEventListener("change", async function () {
+    const previous = runtimeLanguagePreference;
+    runtimeLanguagePreference = runtimeLanguageSelect.value;
+    if (!saveRuntimeSettings()) {
+        runtimeLanguagePreference = previous;
+        runtimeLanguageSelect.value = previous;
+        return;
+    }
+    await I18n.activate(runtimeLanguagePreference,
+        Array.isArray(navigator.languages) && navigator.languages.length
+            ? navigator.languages : [navigator.language || "en"]);
+    I18n.apply(document);
+    setRuntimeModalButtonState(runtimeSettingsModal,
+        runtimeSettingsModal.classList.contains("open"));
+    setRuntimeModalButtonState(runtimeInfoModal,
+        runtimeInfoModal.classList.contains("open"));
+    populateRuntimeLanguageSelect();
+    renderRuntimeStatsBreakdown();
+    renderRuntimeFirmwareList();
+});
+runtimeResetStatsButton.addEventListener("click", function () {
+    if (!window.confirm(t("launcher.confirm.reset"))) return;
+    try { Slopkit.Attempts.reset(); } catch {}
+    renderRuntimeStatsBreakdown();
+});
+for (const modal of [runtimeSettingsModal, runtimeInfoModal]) {
+    modal.addEventListener("click", function (event) {
+        if (event.target === modal) closeRuntimeModal(modal, true);
+    });
+}
+document.querySelectorAll(".modal-close").forEach(function (button) {
+    button.addEventListener("click", function () {
+        closeRuntimeModal(document.getElementById(
+            button.dataset.close), true);
+    });
+});
+document.addEventListener("keydown", function (event) {
+    const modal = activeRuntimeModal;
+    if (!modal) return;
+    if (event.key === "Escape" || event.key === "BrowserBack") {
+        event.preventDefault();
+        event.stopPropagation();
+        closeRuntimeModal(modal, true);
+        return;
+    }
+    if (event.key !== "Tab") return;
+    const focusable = runtimeModalFocusables(modal);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+});
 
 function setDiagnosticsQuiet(value) {
     diagnosticsQuiet = value === true;
@@ -631,7 +1231,8 @@ function setPostActionEnabled(control, enabled) {
     const tabIndex = enabled ? 0 : -1;
     if (control.getAttribute("aria-disabled") !== ariaDisabled)
         control.setAttribute("aria-disabled", ariaDisabled);
-    if (control.tabIndex !== tabIndex) control.tabIndex = tabIndex;
+    if (control.tabIndex !== tabIndex || runtimeBackgroundState)
+        setRuntimeBackgroundTabIndex(control, tabIndex);
 }
 
 function stagePostActionSurface() {
@@ -684,7 +1285,7 @@ function primePostExploitActions() {
         stagePostActionSurface();
         postActionsNode.hidden = true;
     } else if (POST_ACTION_PREVIEW) {
-        revealPostActionSurface(false);
+        revealPostActionSurface(RECOVERY_VIEW);
     } else {
         postActionsNode.hidden = false;
         stagePostActionSurface();
@@ -699,7 +1300,8 @@ function cancelPostActionReveal() {
 }
 
 function schedulePostActionReveal() {
-    if (POST_ACTION_PREVIEW || postActionRevealTimer !== null
+    if ((POST_ACTION_PREVIEW && !RECOVERY_VIEW)
+            || postActionRevealTimer !== null
             || postActionSurfaceVisible || postActionModel.length === 0)
         return;
     postActionRevealTimer = setTimeout(function () {
@@ -770,10 +1372,169 @@ function showPostExploitActions(model) {
         stagePostActionSurface();
         postActionsNode.hidden = true;
     } else if (POST_ACTION_PREVIEW) {
-        revealPostActionSurface(false);
+        revealPostActionSurface(RECOVERY_VIEW);
     } else {
         schedulePostActionReveal();
     }
+}
+
+function passiveRecoveryUrl(record) {
+    const query = new URLSearchParams();
+    query.set("recovery", "view");
+    query.set("fw", record.firmware);
+    query.set("exploit", record.exploit);
+    query.set("attempt", record.attemptId);
+    query.set("lang", I18n.locale || "en");
+    query.set("diag", DIAGNOSTICS_ON ? "1" : "0");
+    query.set("build", Q.get("build") || "dev");
+    return `notify.html?${query.toString()}`;
+}
+
+function recoveryStatusKey(inspection, explicitError) {
+    if (explicitError) return "runtime.status.recoveryFailed";
+    if (inspection.status === "incompatible")
+        return "runtime.status.recoveryIncompatible";
+    const reason = inspection.reason;
+    if (reason === "loader-missing")
+        return "runtime.status.loaderMissing";
+    if (reason === "loader-probe-failed")
+        return "runtime.status.loaderProbeFailed";
+    if (reason === "boot-identity-unavailable")
+        return "runtime.status.bootIdentityUnavailable";
+    if (inspection.status === "disabled")
+        return "runtime.status.recoveryUnavailable";
+    return "runtime.status.recoveryReady";
+}
+
+function startAutomaticBootCheck(record) {
+    stopped = true;
+    try {
+        const cat = document.getElementById("cat");
+        cat.src = IMG_IDLE;
+        cat.className = "run";
+    } catch {}
+    setCaption(t("runtime.caption", { firmware: FW_LABEL }));
+    setStageBanner(t("runtime.stage.checkingBoot"), "");
+    showStatus(t("runtime.status.checkingBoot"), "run");
+    showPostExploitActions({ actions: [] });
+    document.documentElement.dataset.rendererState =
+        "recovery-boot-check-starting";
+    try {
+        const request = Slopkit.PostExploitRecovery.createRequest({
+            firmware: record.firmware,
+            actionId: "unified-autoloader",
+            purpose: "verify-boot"
+        });
+        location.replace(`index.html?recovery=${request}`);
+    } catch {
+        showPassiveRecovery("retry");
+    }
+}
+
+function showPassiveRecovery(explicitError, bootAlreadyChecked) {
+    const inspection = Slopkit.PostExploitRecovery.inspect(FW_LABEL, {
+        buildId: Q.get("build") || "dev"
+    });
+    const record = inspection.record || POST_EXPLOIT_RECORD;
+    const lastAction = record?.postExploit?.lastAction;
+    const autoloaderAlreadyLaunched = lastAction?.actionId
+            === "unified-autoloader"
+        && lastAction.outcome === "sent";
+    stopped = true;
+    try {
+        const cat = document.getElementById("cat");
+        cat.src = IMG_IDLE;
+        cat.className = "run";
+    } catch {}
+    setCaption(t("runtime.caption", { firmware: FW_LABEL }));
+    setStageBanner(t("runtime.stage.complete"), "ok complete");
+    const statusKey = autoloaderAlreadyLaunched
+            && inspection.status === "ready" && !explicitError
+        ? "runtime.status.autoloaderAlreadyLaunched"
+        : recoveryStatusKey(inspection, explicitError);
+    showStatus(t(statusKey),
+        inspection.status === "ready" && !explicitError ? "ok" : "bad");
+
+    const action = Slopkit.PostActions?.get?.("unified-autoloader");
+    if (!record || !action) {
+        showPostExploitActions({ actions: [] });
+        return;
+    }
+    const canStart = inspection.status === "ready"
+        || (bootAlreadyChecked !== true
+            && ["disabled", "incompatible"].includes(inspection.status));
+    const verifyBoot = inspection.status !== "ready";
+    if (!canStart) {
+        showPostExploitActions({ actions: [] });
+        document.documentElement.dataset.rendererState =
+            "recovery-view-ready";
+        return;
+    }
+    const model = Object.assign({}, action, {
+        state: canStart ? "ready" : "unavailable",
+        readyKey: verifyBoot
+            ? "runtime.recovery.checkBoot"
+            : (autoloaderAlreadyLaunched
+                ? "runtime.autoloader.launchAgain" : action.readyKey),
+        launch: canStart ? async function () {
+            try {
+                const request = Slopkit.PostExploitRecovery.createRequest({
+                    firmware: record.firmware,
+                    actionId: "unified-autoloader",
+                    purpose: verifyBoot ? "verify-boot" : "launch"
+                });
+                setStageBanner(t("runtime.stage.reconnecting"), "");
+                showStatus(t("runtime.status.reconnecting"), "run");
+                location.replace(`index.html?recovery=${request}`);
+            } catch {
+                showStatus(t("runtime.status.recoveryFailed"), "bad");
+            }
+        } : null
+    });
+    showPostExploitActions({ actions: [model], autoloader: model });
+    document.documentElement.dataset.rendererState = "recovery-view-ready";
+}
+
+function hardStopRecovery(value) {
+    const error = value instanceof Error ? value
+        : new Error(String(value || "post-exploit recovery failed"));
+    if (error.rebootVerified === true) {
+        try { sessionStorage.removeItem(blockKey); } catch {}
+        try { if (runKey) sessionStorage.removeItem(runKey); } catch {}
+        try {
+            sessionStorage.removeItem(
+                `slopkit:full-warmup-block:${FW_LABEL}`);
+            for (let i = sessionStorage.length - 1; i >= 0; --i) {
+                const key = sessionStorage.key(i);
+                if (key?.startsWith("slopkit:arm:"))
+                    sessionStorage.removeItem(key);
+            }
+        } catch {}
+        try { Slopkit.PostExploitRecovery.clearSession(); } catch {}
+        location.replace("index.html");
+        return;
+    }
+    if (error.sameBootVerified === true) {
+        try { if (runKey) sessionStorage.removeItem(runKey); } catch {}
+        try { Slopkit.PostExploitRecovery.clearSession(); } catch {}
+        try {
+            const target = new URL(passiveRecoveryUrl(
+                Slopkit.PostExploitRecovery.inspect(FW_LABEL).record),
+                location.href);
+            history.replaceState(null, "", target.href);
+        } catch {}
+        showPassiveRecovery(null, true);
+        return;
+    }
+    mark("RECOVERY-FAILED", error.message);
+    stopped = true;
+    retryScheduled = false;
+    try { sessionStorage.setItem(blockKey, "1"); } catch {}
+    catState("bad");
+    cancelPostActionReveal();
+    stagePostActionSurface();
+    showPassiveRecovery(error.recoveryUnavailable === true
+        ? null : "retry");
 }
 
 async function runPostAction(action) {
@@ -800,6 +1561,10 @@ async function runPostAction(action) {
 }
 
 function hardStop(reason, recoveryDisposition) {
+    if (RECOVERY_ARMED) {
+        hardStopRecovery(reason);
+        return;
+    }
     const disposition = recoveryDisposition === "dirty-cold-power-cycle"
         ? recoveryDisposition : "safe-normal-reboot";
     const recoveryKey = disposition === "dirty-cold-power-cycle"
@@ -1149,7 +1914,7 @@ function startAttempt() {
     rendererAttemptStarted = true;
     try {
         const qualification = preloadedProfile?.qualificationRecord?.() || {};
-        Slopkit.Attempts?.begin({
+        if (FULL_CHAIN_ARMED) Slopkit.Attempts?.begin({
             attemptId: Q.get("arm"),
             exploit: SELECTED_EXPLOIT,
             firmware: FW_LABEL,
@@ -1161,7 +1926,7 @@ function startAttempt() {
             mode: "default"
         });
     } catch {}
-    mark("ATTEMPT-START");
+    mark(RECOVERY_ARMED ? "RECOVERY-RENDERER-START" : "ATTEMPT-START");
     resetAttemptState();
     showStatus("", "run");
     try {
@@ -1928,9 +2693,17 @@ function launchRuntime() {
     setCaption(t("runtime.caption", { firmware: FW_LABEL }));
     setStageBanner(t("runtime.stage.preparing"), "");
     showStatus("", "run");
-    Slopkit.Runtime.bootstrap({
+    const bootstrap = RECOVERY_ARMED
+        ? Slopkit.Runtime.bootstrapRecovery.bind(Slopkit.Runtime)
+        : Slopkit.Runtime.bootstrap.bind(Slopkit.Runtime);
+    bootstrap({
         firmware: FW_LABEL,
         exploit: SELECTED_EXPLOIT,
+        flow: RECOVERY_ARMED ? "recovery" : "full-chain",
+        actionId: RECOVERY_ARMED ? Q.get("action") : undefined,
+        purpose: RECOVERY_ARMED ? Q.get("purpose") : undefined,
+        buildId: Q.get("build") || "dev",
+        runtimeDigest: ARM_CONTEXT.runtimeDigest,
         p2jbBurnWorkers: 3,
         mode: RUN_MODE,
         revision: REVISION,
@@ -1964,7 +2737,18 @@ function launchRuntime() {
         mark,
         setDiagnosticsQuiet
     }).catch(function (error) {
-        hardStop(error?.message || "full chain failed",
+        if (RECOVERY_ARMED) hardStopRecovery(error);
+        else if (error?.postExploitComplete === true) {
+            const completion = Slopkit.PostExploitRecovery
+                ?.inspect(FW_LABEL)?.record;
+            if (completion) {
+                const target = new URL(passiveRecoveryUrl(completion),
+                    location.href);
+                target.searchParams.set("recoveryError", "post-action-failed");
+                location.replace(target.href);
+            } else hardStop("sealed completion verification failed",
+                error?.recoveryDisposition);
+        } else hardStop(error?.message || "full chain failed",
             error?.recoveryDisposition);
     });
 }
@@ -2025,8 +2809,13 @@ function preloadRuntimeProfile() {
         hardStop(ARM_CONTEXT_ERROR);
         return;
     }
-    Slopkit.Profile.loadForExploit(OFFSETS_URL, FW_LABEL, RUN_MODE,
-        SELECTED_EXPLOIT).then(function (profile) {
+    Promise.resolve().then(function () {
+        if (!runtimeDatabase)
+            throw runtimeDatabaseError
+                || new Error("firmware database is unavailable");
+        return Slopkit.Profile.selectForExploit(runtimeDatabase, FW_LABEL,
+            RUN_MODE, SELECTED_EXPLOIT);
+    }).then(function (profile) {
         verifyArmContextProfile(profile);
         const mismatch = rendererProfileQueryMismatch(profile);
         if (mismatch)
@@ -2200,7 +2989,13 @@ function beginComposition() {
 
 function initializeRuntimePage() {
     I18n.apply(document);
+    populateRuntimeLanguageSelect();
+    renderRuntimeStatsBreakdown();
+    renderRuntimeFirmwareList();
+    setRuntimeSettingsLocked(armed && !RECOVERY_VIEW);
     primePostExploitActions();
+    parkRuntimeModal(runtimeSettingsModal);
+    parkRuntimeModal(runtimeInfoModal);
     setCaption(t("runtime.caption", { firmware: FW_LABEL }));
     if (I18n.lastLoadError)
         mark("LOCALE-LOAD-FAILED", String(I18n.lastLoadError.message)
@@ -2213,7 +3008,19 @@ function initializeRuntimePage() {
         try { document.getElementById("cat").className = "run"; } catch {}
     }
 
-    if (COMPLETE_PREVIEW) {
+    if (RECOVERY_VIEW) {
+        if (DIRECT_COMPLETION_REFRESH) {
+            try {
+                history.replaceState(null, "",
+                    passiveRecoveryUrl(POST_EXPLOIT_RECORD));
+            } catch {}
+        }
+        const recoveryError = Q.get("recoveryError") || "";
+        if (!recoveryError)
+            startAutomaticBootCheck(POST_EXPLOIT_RECORD);
+        else
+            showPassiveRecovery(recoveryError, false);
+    } else if (COMPLETE_PREVIEW) {
         stopped = true;
         try {
             var completePreviewCat = document.getElementById("cat");
@@ -2244,6 +3051,8 @@ function initializeRuntimePage() {
         setStageBanner("", "");
         showStatus(t("runtime.status.openLauncher"), "run");
         document.documentElement.dataset.rendererState = "unarmed-ready";
+    } else if (ARM_CONTEXT_ERROR) {
+        hardStop(ARM_CONTEXT_ERROR);
     } else if (RENDERER_CONTRACT_ERROR) {
         hardStop("renderer contract query rejected; return to the launcher");
     } else if (RUN_MODE !== "elf-loader") {
@@ -2279,7 +3088,7 @@ function initializeRuntimePage() {
                 hardStop("run-token persistence unavailable");
             }
         }
-        if (!stopped && alreadyBlocked) {
+        if (!stopped && alreadyBlocked && !RECOVERY_ARMED) {
             hardStop("renderer attempt already recorded; reboot and return to the launcher");
         }
         if (!stopped) {
@@ -2289,7 +3098,8 @@ function initializeRuntimePage() {
     }
 }
 
-localeReady.then(initializeRuntimePage);
+Promise.all([localeReady, runtimeDatabaseReady])
+    .then(initializeRuntimePage);
 </script>
 </body>
 </html>

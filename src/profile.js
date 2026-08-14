@@ -844,8 +844,9 @@
                 throw new Error(`invalid positive integer ${path}`);
         }
 
-        for (const name of ["allocateMainDirectMemory", "close", "connect", "dlsym",
-            "getpid", "ioctl", "jitCreateAlias", "jitCreateSharedMemory",
+        for (const name of ["allocateMainDirectMemory", "bind", "close", "connect",
+            "dlsym", "error", "getpid", "ioctl",
+            "jitCreateAlias", "jitCreateSharedMemory",
             "mapDirectMemory", "mmap", "mprotect", "munmap", "nanosleep", "open",
             "pthreadAttrDestroy", "pthreadAttrInit",
             "pthreadAttrSetdetachstate", "pthreadAttrSetstacksize",

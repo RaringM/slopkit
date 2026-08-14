@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="slopkit-build" content="746b8cff13e9c5d7e3e3fcd4a92573a2006a67f2">
+<meta name="slopkit-build" content="e19d361fc2871e82841ecc593205dde22c173306">
 <title>slopkit</title>
 <!-- Reserved preload placeholder preserves parsed document shape. -->
 <link rel="stylesheet" href="src/theme.css">
@@ -41,143 +41,6 @@ button.primary { font-size: 23px; }
 button.danger { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-text); }
 button:disabled { opacity: .38; cursor: default; }
 #msg { color: var(--muted); font-size: 18px; min-height: 1.3em; overflow-wrap: anywhere; }
-.toolbar {
-    position: fixed; top: 10px; inset-inline-start: 10px; z-index: 10;
-    display: flex; gap: 8px;
-}
-.toolbar button {
-    width: 60px; height: 60px; min-height: 0; padding: 0;
-    color: var(--muted);
-    display: grid; place-items: center; cursor: pointer;
-}
-.toolbar button:hover, .toolbar button:focus { color: var(--text); }
-.toolbar button.open { color: var(--text); border-color: var(--primary); background: var(--raised); }
-.toolbar svg { width: 24px; height: 24px; fill: currentColor; }
-body.modal-open > main,
-body.modal-open > .toolbar {
-    pointer-events: none;
-}
-.modal-backdrop {
-    position: fixed; inset: 0; z-index: 20;
-    background: rgba(0,0,0,.65);
-    display: grid; place-items: start;
-    padding: 12px 14px;
-    overflow: hidden;
-}
-.modal {
-    width: min(820px, 100%); max-height: calc(100vh - 24px);
-    padding: 20px;
-    display: flex; flex-direction: column; gap: 14px;
-    overflow-y: auto;
-    box-shadow: 0 12px 48px rgba(0,0,0,.6);
-}
-.modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-}
-.modal-header h2 {
-    margin: 0; font-size: 28px; font-weight: 700; color: var(--text);
-}
-.modal-close {
-    width: 60px; height: 60px; min-height: 0; padding: 0;
-    color: var(--muted);
-    font-size: 22px; line-height: 1;
-    display: grid; place-items: center; cursor: pointer;
-}
-.modal-close:hover, .modal-close:focus { color: #fff; }
-.modal h3 {
-    margin: 0 0 8px; font-size: 18px; font-weight: 600; color: var(--muted);
-}
-.modal p {
-    margin: 0; color: var(--muted); font-size: 18px; line-height: 1.4;
-}
-.modal ul {
-    margin: 0; padding-inline-start: 20px; color: var(--muted); font-size: 17px; line-height: 1.4;
-}
-.fw-list {
-    display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0;
-}
-.fw-list li {
-    padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px;
-    background: var(--raised); color: var(--text); font-size: 16px;
-    font-family: monospace;
-}
-.settings-row {
-    display: flex; align-items: center; gap: 12px;
-    min-height: 64px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--raised); cursor: pointer;
-}
-.settings-row span { flex: 1; color: var(--muted); font-size: 18px; cursor: pointer; }
-.settings-copy { flex: 1; display: grid; gap: 3px; color: var(--muted); }
-.settings-copy span { font-size: 18px; }
-.settings-copy small { color: var(--muted); font-size: 14px; }
-.settings-pickers {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 12px;
-}
-.settings-picker, #language-section {
-    display: flex; flex-direction: column; gap: 6px;
-}
-.settings-options {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-}
-.info-grid {
-    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-}
-.info-block {
-    min-width: 0; padding: 12px; border-radius: 10px; background: var(--bg);
-}
-.info-block + .info-block { margin: 0; }
-.info-section + .info-section { margin-top: 12px; }
-.credits-list {
-    list-style: none; padding: 0 !important;
-    display: flex; flex-wrap: wrap; gap: 5px 14px;
-}
-.stats-breakdown { list-style: none; padding: 0; display: grid; gap: 8px; }
-.stats-breakdown li {
-    padding: 10px 12px; border-radius: 10px; background: var(--raised);
-    font: 17px/1.3 "Consolas", monospace;
-}
-.info-link {
-    min-height: 60px; padding: 12px 18px;
-    border: 1px solid var(--primary); border-radius: 10px;
-    background: var(--raised); color: var(--text);
-    display: grid; place-items: center;
-    font-size: 18px; font-weight: 700; text-decoration: none;
-}
-.info-link:focus {
-    outline: 4px solid var(--focus); outline-offset: 3px;
-    border-color: var(--focus); box-shadow: none;
-}
-#reset-stats { min-height: 60px; }
-.settings-row input[type="checkbox"] {
-    width: 28px; height: 28px; accent-color: var(--primary); cursor: pointer;
-}
-.settings-section { margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
-#exploit-select, #language-select {
-    width: 100%; min-height: 60px; padding: 10px 14px;
-    border: 1px solid var(--border); border-radius: 10px;
-    background: var(--raised); color: var(--text); font-size: 18px; font-weight: 600;
-    cursor: pointer;
-}
-button:focus {
-    border-color: var(--focus);
-}
-.modal-close:focus {
-    outline-offset: 2px;
-}
-.settings-row:focus-within {
-    outline: 4px solid var(--focus); outline-offset: 2px;
-    border-color: var(--focus); background: var(--raised);
-}
-#exploit-select:focus, #language-select:focus {
-    outline-offset: 2px;
-    border-color: var(--focus); background: var(--raised);
-}
-input[type="checkbox"]:focus {
-    outline: 4px solid var(--focus); outline-offset: 3px;
-}
 .diagnostics { border-top: 1px solid var(--border); padding-top: 12px; }
 .pending-action {
     display: flex; align-items: center; justify-content: space-between;
@@ -186,9 +49,6 @@ input[type="checkbox"]:focus {
     background: var(--raised); color: var(--text); font-size: 18px;
 }
 .pending-action button { min-height: 52px; padding: 8px 18px; }
-@media (max-width: 700px) {
-    .settings-options, .info-grid { grid-template-columns: 1fr; }
-}
 @media (max-height: 700px) {
     body { padding-block: 8px; }
     #cat { width: 120px; margin-bottom: 4px; }
@@ -196,8 +56,6 @@ input[type="checkbox"]:focus {
     #stats { margin-bottom: 4px; }
     .panel { padding: 10px; gap: 8px; }
     button { min-height: 60px; padding-block: 10px; }
-    .modal { padding: 16px; gap: 10px; }
-    .settings-row { min-height: 60px; }
 }
 </style>
 </head>
@@ -331,6 +189,8 @@ const PRIME_COMPOSE_MS = 100;
 const PRIME_SETTLE_MS = 250;
 const PLACEMENT_PAIRS = 4;
 const RUNTIME_REVISION_FALLBACK = "runtime-staged-loader-recovery-v3";
+const RECOVERY_QUERY = new URLSearchParams(location.search);
+const RECOVERY_REQUEST_TOKEN = RECOVERY_QUERY.get("recovery") || "";
 const clearNode = document.getElementById("clear");
 const runNode = document.getElementById("run");
 const msgNode = document.getElementById("msg");
@@ -362,9 +222,15 @@ let lastLatchDiagnostic = "";
 let languagePreference = "auto";
 let storageFailure = null;
 let settingsReady = false;
+let recoveryRequest = null;
 
 function t(key, values) {
     return Slopkit.I18n.t(key, values);
+}
+
+function currentBuildId() {
+    return document.querySelector(
+        "meta[name='slopkit-build']")?.content || "dev";
 }
 
 function browserLanguages() {
@@ -782,11 +648,36 @@ function readRecord(storage, key) {
     } catch { return { state: "storage-unavailable" }; }
 }
 
+function postExploitViewUrl(record, error) {
+    const query = new URLSearchParams();
+    query.set("recovery", "view");
+    query.set("fw", record.firmware);
+    query.set("exploit", record.exploit);
+    query.set("attempt", record.attemptId);
+    query.set("lang", Slopkit.I18n.locale || "en");
+    query.set("diag", optDiagnostics.checked ? "1" : "0");
+    query.set("build", currentBuildId());
+    if (error) query.set("recoveryError", error);
+    return `notify.html?${query.toString()}`;
+}
+
+function openPostExploitView(record, error) {
+    location.replace(postExploitViewUrl(record, error));
+}
+
 function currentLatch() {
     if (storageFailure) return null;
-    return launchFailure
-        || (firmware ? readRecord(sessionStorage, warmupKey()) : null)
-        || (firmware ? readRecord(localStorage, dirtyKey()) : null);
+    const warmup = firmware
+        ? readRecord(sessionStorage, warmupKey()) : null;
+    const persisted = firmware
+        ? readRecord(localStorage, dirtyKey()) : null;
+    const recoveringSealedCompletion = recoveryRequest
+        && persisted?.recoveryDisposition === "sealed"
+        && persisted.state === "complete"
+        && persisted.attemptId === recoveryRequest.completion?.attemptId
+        && persisted.bootId === recoveryRequest.completion?.bootId;
+    return launchFailure || warmup
+        || (recoveringSealedCompletion ? null : persisted);
 }
 
 function latchDisposition(latch) {
@@ -1117,6 +1008,78 @@ function attestWarmup(armKey, armRecord, result) {
         throw new Error("warmup attestation readback failed");
 }
 
+async function startPostExploitRecovery(request) {
+    const completion = request?.completion;
+    let recoveryArm = "";
+    try {
+        if (!completion || request.actionId !== "unified-autoloader")
+            throw new Error("post-exploit recovery request is invalid");
+        const recoveryProfile = Slopkit.Profile.selectForExploit(
+            database, completion.firmware, "elf-loader", completion.exploit);
+        const qualification = recoveryProfile.qualificationRecord?.() || {};
+        const binding = {
+            exploit: completion.exploit,
+            profileRevision: qualification.profileRevision,
+            engineRevision: qualification.engineRevision,
+            runtimeRevision: qualification.runtimeRevision
+                || RUNTIME_REVISION_FALLBACK,
+            runtimeDigest: undefined
+        };
+        const inspection = Slopkit.PostExploitRecovery.inspect(
+            completion.firmware, {
+                buildId: currentBuildId(), profileBinding: binding
+            });
+        const inspectionAllowed = request.purpose === "verify-boot"
+            ? ["ready", "disabled", "incompatible"].includes(
+                inspection.status)
+            : inspection.status === "ready";
+        if (!inspectionAllowed) {
+            throw new Error("post-exploit completion is incompatible");
+        }
+
+        recoveryArm = Slopkit.PostExploitRecovery.createArm({
+            completion: inspection.record,
+            actionId: request.actionId,
+            purpose: request.purpose
+        });
+        const runToken = token();
+        const query = recoveryProfile.rendererQuery({
+            run: runToken, arm: recoveryArm, max: "1"
+        });
+        query.set("auto", "0");
+        query.set("flow", "recovery");
+        query.set("action", request.actionId);
+        query.set("purpose", request.purpose);
+        query.set("check", request.automatic === true ? "automatic" : "manual");
+        query.set("exploit", completion.exploit);
+        query.set("log", "0");
+        query.set("diag", optDiagnostics.checked ? "1" : "0");
+        query.set("lang", Slopkit.I18n.locale);
+        query.set("build", currentBuildId());
+        query.set("tseq", "0");
+        const armKey = `${Slopkit.PostExploitRecovery.ARM_PREFIX}${recoveryArm}`;
+        const armRecord = sessionStorage.getItem(armKey);
+        if (!armRecord)
+            throw new Error("post-exploit renderer arm readback failed");
+        const result = await warmRenderer("notify.html", query,
+            armKey, armRecord);
+        Slopkit.PostExploitRecovery.attestArm(recoveryArm,
+            Object.assign({}, result, { placementPairs: PLACEMENT_PAIRS }));
+        launchStatusKey = "launcher.status.starting";
+        refresh();
+        location.replace(`notify.html?${query.toString()}`);
+    } catch (error) {
+        launcherLog("RECOVERY-START-FAILED", failureReason(error));
+        if (recoveryArm) {
+            try {
+                sessionStorage.removeItem(
+                    `${Slopkit.PostExploitRecovery.ARM_PREFIX}${recoveryArm}`);
+            } catch {}
+        }
+        openPostExploitView(completion, "reconnect-failed");
+    }
+}
+
 async function recordFailure(state, attemptId, error) {
     launcherLog("RECORD-FAILURE", `${state}: ${failureReason(error)}`);
     const record = attemptRecord(attemptId, state, failureReason(error));
@@ -1175,6 +1138,7 @@ clearNode.addEventListener("click", async function () {
             if (key?.startsWith(ARM_PREFIX))
                 sessionStorage.removeItem(key);
         }
+        Slopkit.PostExploitRecovery?.clearSession();
         if (localStorage.getItem(dirtyKey()) !== null
                 || sessionStorage.getItem(warmupKey()) !== null)
             throw new Error("recovery latch removal failed");
@@ -1295,8 +1259,56 @@ async function initializeLauncher() {
         ? settings.language : "auto";
     await Slopkit.I18n.activate(requested, browserLanguages());
     Slopkit.I18n.apply(document);
+    initSettings(settings);
+
+    if (RECOVERY_REQUEST_TOKEN) {
+        recoveryRequest = Slopkit.PostExploitRecovery.consumeRequest(
+            RECOVERY_REQUEST_TOKEN);
+        if (!recoveryRequest) {
+            const inspection = Slopkit.PostExploitRecovery.inspect(firmware);
+            if (["ready", "disabled", "incompatible"].includes(
+                    inspection.status))
+                openPostExploitView(inspection.record, "request-invalid");
+            else location.replace("index.html");
+            return;
+        }
+        launching = true;
+        launchStatusKey = recoveryRequest.purpose === "verify-boot"
+            ? "launcher.status.checkingBoot"
+            : "launcher.status.reconnecting";
+    } else {
+        const inspection = Slopkit.PostExploitRecovery.inspect(firmware);
+        if (["ready", "disabled", "incompatible"].includes(
+                inspection.status)) {
+            try {
+                const requestToken = Slopkit.PostExploitRecovery.createRequest({
+                    firmware: inspection.record.firmware,
+                    actionId: "unified-autoloader",
+                    purpose: "verify-boot"
+                });
+                recoveryRequest = Slopkit.PostExploitRecovery.consumeRequest(
+                    requestToken);
+                if (!recoveryRequest
+                        || recoveryRequest.completion.attemptId
+                            !== inspection.record.attemptId)
+                    throw new Error(
+                        "automatic boot-check request could not be validated");
+                recoveryRequest.automatic = true;
+                launching = true;
+                launchStatusKey = "launcher.status.checkingBoot";
+            } catch (error) {
+                launcherLog("BOOT-CHECK-START-FAILED", failureReason(error));
+                openPostExploitView(inspection.record, "reconnect-failed");
+                return;
+            }
+        }
+    }
+
     let pendingAction = null;
-    try { pendingAction = await Slopkit.PendingActions.capture(firmware); }
+    try {
+        if (!recoveryRequest)
+            pendingAction = await Slopkit.PendingActions.capture(firmware);
+    }
     catch (error) {
         launcherLog("REQUESTED-ACTION-REJECTED", failureReason(error));
     }
@@ -1312,12 +1324,11 @@ async function initializeLauncher() {
     } else {
         pendingActionBanner.hidden = true;
     }
-    initSettings(settings);
     try {
         const pending = Slopkit.Attempts.summaries().pending.find(function (item) {
             return !firmware || item.firmware === firmware;
         });
-        if (pending && !currentLatch()) {
+        if (!recoveryRequest && pending && !currentLatch()) {
             launchFailure = {
                 state: "interrupted-navigation", attemptId: pending.id,
                 exploit: pending.exploit, firmware: pending.firmware,
@@ -1344,10 +1355,15 @@ async function initializeLauncher() {
         refreshFirmwareList();
         launcherLog("DB-LOADED", `fw=${firmware}`);
         refresh();
+        if (recoveryRequest)
+            startPostExploitRecovery(recoveryRequest);
     }).catch(function (error) {
         databaseFailure = error;
         launcherLog("DB-LOAD-FAILED", failureReason(error));
         refresh();
+        if (recoveryRequest)
+            openPostExploitView(recoveryRequest.completion,
+                "reconnect-failed");
     });
 }
 

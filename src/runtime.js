@@ -441,19 +441,23 @@
                     session.actionResults[actionId] = { state: "sent", payload };
                     markProgress?.(sentTag, `${actionId} ${payload.bytes} bytes`);
                     if (action.terminal === true) {
-                        this.setKernelRecord(session.handoff.firmware,
-                            "payload-sent", {
-                            mode: session.handoff.mode,
-                            attemptId: session.handoff.armToken,
-                            rebootRequired:
-                                session.kernel.rebootRequired === true,
-                            payloadBytes: payload.bytes
-                        });
+                        try {
+                            NS.PostExploitRecovery?.noteAction(
+                                session.handoff.firmware, {
+                                actionId, outcome: "sent",
+                                bytes: payload.bytes
+                                });
+                        } catch {}
                     }
                     updateStage?.("runtime.stage.finishing");
                     return payload;
                 } catch (error) {
                     session.actionResults[actionId] = { state: "failed", error };
+                    try {
+                        NS.PostExploitRecovery?.noteAction(
+                            session.handoff.firmware,
+                            { actionId, outcome: "failed" });
+                    } catch {}
                     if (action.terminal === true
                             && session.terminalActionId === actionId)
                         session.terminalActionId = null;
@@ -827,6 +831,280 @@
             return true;
         },
 
+        releaseRecoveryResources(session) {
+            if (!session) return false;
+            if (session.allocator && !session.allocatorReleased) {
+                session.allocator.release();
+                session.allocatorReleased = true;
+            }
+            if (session.memory && !session.memoryReleased) {
+                session.memory.release();
+                session.memoryReleased = true;
+            }
+            return true;
+        },
+
+        async bootstrapRecovery(handoff) {
+            if (this.active) throw new Error("a slopkit runtime is already active");
+            if (handoff?.flow !== "recovery" || handoff.mode !== "elf-loader"
+                    || handoff.actionId !== "unified-autoloader"
+                    || !["launch", "verify-boot"].includes(handoff.purpose))
+                throw new Error("post-exploit recovery handoff is invalid");
+            if (!["poops", "lapse", "p2jb"].includes(handoff.exploit))
+                throw new Error("post-exploit recovery exploit is invalid");
+            if (!NS.PostExploitRecovery)
+                throw new Error("post-exploit recovery state is unavailable");
+            this.verifyStorage(root.localStorage, "local");
+            this.verifyStorage(root.sessionStorage, "session");
+
+            const translator = handoff.translate;
+            const updateStage = (key, cls) => {
+                try {
+                    handoff.setStageBanner?.(copy(translator, key), cls || "");
+                } catch {}
+            };
+            const updateStatus = (key, cls) => {
+                try {
+                    handoff.showStatus?.(key ? copy(translator, key) : "",
+                        cls || "run");
+                } catch {}
+            };
+            const mark = (tag, extra) => {
+                try { handoff.mark?.(tag, extra); } catch {}
+            };
+            const unavailable = (reason, message) => {
+                try { NS.PostExploitRecovery.disable(handoff.firmware, reason); }
+                catch {}
+                const error = new Error(message);
+                error.postExploitRecovery = true;
+                error.recoveryUnavailable = true;
+                error.recoveryReason = reason;
+                return error;
+            };
+
+            const session = {
+                handoff, profile: null, memory: null, bridge: null,
+                allocator: null, allocatorReleased: false,
+                memoryReleased: false, payloadSender: null,
+                actionState: "sending", actionPromise: null,
+                actionError: null, bootId: null
+            };
+            this.active = session;
+            try {
+                const verificationOnly = handoff.purpose === "verify-boot";
+                updateStage(verificationOnly
+                    ? "runtime.stage.checkingBoot"
+                    : "runtime.stage.reconnecting");
+                updateStatus(verificationOnly
+                    ? "runtime.status.checkingBoot"
+                    : "runtime.status.reconnecting");
+                const arm = NS.PostExploitRecovery.readArm(handoff.armToken);
+                if (!arm) throw new Error("post-exploit recovery arm is absent");
+                let profile = handoff.profile;
+                if (!profile || profile.firmware !== handoff.firmware
+                        || profile.mode !== "elf-loader"
+                        || profile.exploit !== handoff.exploit
+                        || typeof profile.offset !== "function")
+                    throw new Error("post-exploit recovery profile is invalid");
+                NS.Profile.validateExploitProfile(profile.raw,
+                    handoff.firmware, profile.metadata, handoff.exploit);
+                const binding = this.profileBinding(profile);
+                const expectedBinding = Object.assign({}, binding, {
+                    runtimeDigest: handoff.runtimeDigest || arm.runtimeDigest
+                });
+                const inspection = NS.PostExploitRecovery.inspect(
+                    handoff.firmware, {
+                        buildId: handoff.buildId,
+                        profileBinding: expectedBinding
+                    });
+                if (inspection.status === "incompatible"
+                        && handoff.purpose !== "verify-boot")
+                    throw unavailable("profile-mismatch",
+                        "post-exploit recovery belongs to another build or profile");
+                const inspectionAllowed = handoff.purpose === "verify-boot"
+                    ? ["ready", "disabled", "incompatible"].includes(
+                        inspection.status)
+                    : inspection.status === "ready";
+                if (!inspectionAllowed)
+                    throw new Error("sealed post-exploit completion is unavailable");
+                const expectedArm = {
+                    firmware: handoff.firmware,
+                    exploit: inspection.record.exploit,
+                    attemptId: inspection.record.attemptId,
+                    bootId: inspection.record.bootId,
+                    buildId: inspection.record.buildId,
+                    profileRevision: inspection.record.profileRevision,
+                    engineRevision: inspection.record.engineRevision,
+                    runtimeRevision: inspection.record.runtimeRevision,
+                    runtimeDigest: inspection.record.runtimeDigest,
+                    actionId: handoff.actionId,
+                    purpose: handoff.purpose
+                };
+                if (!NS.PostExploitRecovery.consumeArm(
+                    handoff.armToken, expectedArm))
+                    throw new Error("post-exploit recovery arm validation failed");
+                this.verifyRuntimeExtension(handoff);
+                session.profile = profile;
+
+                const memory = new NS.UserlandMemory({ carrier: handoff.carrier,
+                    view: handoff.rwView, aim: handoff.aimCarrier,
+                    restore: handoff.restoreCarrier,
+                    originalVector: handoff.originalVector });
+                session.memory = memory;
+                this.verifyLiveProfile(memory, profile, handoff.webkitBase,
+                    handoff.kernelBase, handoff.libcBase);
+                const bridge = new NS.NativeBridge({ memory, profile,
+                    webkitBase: handoff.webkitBase,
+                    kernelBase: handoff.kernelBase,
+                    arenaView: handoff.arenaView,
+                    arenaBase: handoff.arenaBase,
+                    collatorAddress: handoff.collatorAddress,
+                    originalCollator: handoff.originalCollator,
+                    compare: handoff.compare });
+                session.bridge = bridge;
+                bridge.verify();
+                const allocator = new NS.NativeAllocator(bridge, memory,
+                    { regionSize: 0x400000 });
+                session.allocator = allocator;
+                session.bootId = this.readBootIdentity(bridge, allocator);
+                if (!session.bootId)
+                    throw unavailable("boot-identity-unavailable",
+                        "current boot identity could not be verified");
+                if (session.bootId !== inspection.record.bootId
+                        || session.bootId !== inspection.bootGuard.bootId) {
+                    NS.PostExploitRecovery.retire(handoff.firmware,
+                        inspection.record.bootId, session.bootId);
+                    const reboot = new Error(
+                        "a new boot was verified; the stale completion was retired");
+                    reboot.postExploitRecovery = true;
+                    reboot.rebootVerified = true;
+                    reboot.recoveryReason = "boot-changed";
+                    throw reboot;
+                }
+                mark("RECOVERY-BOOT-VERIFIED");
+                if (handoff.purpose === "verify-boot") {
+                    const verified = new Error(
+                        "the current boot matches the sealed completion");
+                    verified.postExploitRecovery = true;
+                    verified.sameBootVerified = true;
+                    verified.recoveryReason = inspection.reason
+                        || "verification-only";
+                    throw verified;
+                }
+
+                const transport = {
+                    bridge,
+                    alloc(size, alignment, label) {
+                        return allocator.alloc(size, alignment, label);
+                    }
+                };
+                const sender = new NS.PayloadSender(transport, profile);
+                session.payloadSender = sender;
+                let probe;
+                try { probe = sender.probeExistingLoader(); }
+                catch (error) {
+                    throw unavailable("loader-probe-failed",
+                        `elfldr presence check failed: ${error.message}`);
+                }
+                if (!probe.present)
+                    throw unavailable("loader-missing",
+                        "elfldr is not listening on the completed boot");
+                mark("RECOVERY-ELFLDR-VERIFIED", `port=${probe.port}`);
+
+                const action = NS.PostActions?.get?.(handoff.actionId);
+                if (!action || !NS.PostActions.supportsFirmware(
+                    action.id, handoff.firmware))
+                    throw unavailable("action-unavailable",
+                        "Autoloader is unavailable for this profile");
+
+                const render = (notice) => {
+                    const state = session.actionState;
+                    const model = Object.assign({}, action, {
+                        state,
+                        launch: state === "failed" ? launch : null
+                    });
+                    try {
+                        handoff.showPostExploitActions?.({
+                            actions: state === "sent" ? [] : [model],
+                            autoloader: model,
+                            notice: notice || null
+                        });
+                    } catch {}
+                };
+                const launch = async () => {
+                    if (session.actionPromise) return session.actionPromise;
+                    session.actionState = "sending";
+                    session.actionError = null;
+                    updateStage(action.stageKey
+                        || "runtime.stage.startingAutoloader");
+                    updateStatus(null);
+                    render();
+                    mark("RECOVERY-PAYLOAD-SEND-START", action.id);
+                    const task = sender.send(action).then((payload) => {
+                        session.actionState = "sent";
+                        try {
+                            NS.PostExploitRecovery.noteAction(
+                                handoff.firmware, {
+                                    actionId: action.id, outcome: "sent",
+                                    bytes: payload.bytes
+                                });
+                        } catch {}
+                        mark("RECOVERY-PAYLOAD-SENT",
+                            `${action.id} ${payload.bytes} bytes`);
+                        updateStage("runtime.stage.complete", "ok complete");
+                        updateStatus(action.sentStatusKey
+                            || "runtime.status.autoloaderStarting", "ok");
+                        render({
+                            headlineKey: action.sentKey,
+                            detailKey: action.sentStatusKey,
+                            cls: "ok"
+                        });
+                        try { this.releaseRecoveryResources(session); }
+                        catch { mark("RECOVERY-CLEANUP-WARNING"); }
+                        return payload;
+                    }).catch((error) => {
+                        session.actionState = "failed";
+                        session.actionError = error;
+                        try {
+                            NS.PostExploitRecovery.noteAction(
+                                handoff.firmware,
+                                { actionId: action.id, outcome: "failed" });
+                        } catch {}
+                        mark("RECOVERY-PAYLOAD-FAILED", action.id);
+                        updateStage(action.failedKey
+                            || "runtime.autoloader.failed", "bad");
+                        updateStatus(action.failedStatusKey
+                            || "runtime.autoloader.failedStatus", "bad");
+                        render({
+                            headlineKey: action.failedKey,
+                            detailKey: action.failedStatusKey,
+                            cls: "bad"
+                        });
+                        throw error;
+                    }).finally(() => {
+                        if (session.actionPromise === task)
+                            session.actionPromise = null;
+                    });
+                    session.actionPromise = task;
+                    return task;
+                };
+                session.launch = launch;
+                try { await launch(); }
+                catch {
+                    // Keep the verified userland session alive for an explicit
+                    // retry of the pinned payload from the Complete surface.
+                }
+                return session;
+            } catch (error) {
+                if (!session.actionError) {
+                    try { this.releaseRecoveryResources(session); } catch {}
+                    this.active = null;
+                }
+                error.postExploitRecovery = true;
+                throw error;
+            }
+        },
+
         async bootstrap(handoff) {
             if (this.active) throw new Error("a slopkit runtime is already active");
             if (handoff?.mode !== "elf-loader")
@@ -846,6 +1124,7 @@
                 actionQueueTail: Promise.resolve(), renderActions: null,
                 actionNotice: null, terminalActionId: null,
                 requestedAction: null,
+                exploitComplete: false,
                 manualPayloadAvailable: false,
                 reachedStages: new Set(["renderer"]) };
             this.active = session;
@@ -1109,16 +1388,26 @@
                 // This is the exploit completion boundary. Persist and flush
                 // it before a post action can fail, suspend, or replace the
                 // browser process. Post-action results never rewrite it.
-                this.setKernelRecord(handoff.firmware, "complete", {
-                    mode: handoff.mode, attemptId,
+                if (!NS.PostExploitRecovery)
+                    throw new Error("post-exploit recovery state is unavailable");
+                NS.PostExploitRecovery.seal({
+                    firmware: handoff.firmware,
+                    exploit: handoff.exploit,
+                    attemptId,
                     bootId: session.bootId,
-                    diagnostics: this.kernelDiagnostics(kernel),
-                    rebootRequired: false,
-                    recoveryDisposition: RECOVERY_DISPOSITIONS.SEALED });
+                    diagnostics: this.kernelDiagnostics(kernel)
+                });
                 finishAttempt(attemptId, { outcome: "success",
                     terminalStage: "elfldr-ready", rebootRequired: false,
                     recoveryDisposition: RECOVERY_DISPOSITIONS.SEALED,
                     stages: Array.from(session.reachedStages) });
+                const sealed = NS.PostExploitRecovery.inspect(
+                    handoff.firmware);
+                if (sealed.status !== "ready"
+                        || sealed.record?.attemptId !== attemptId)
+                    throw new Error(
+                        "post-exploit completion could not be cross-verified");
+                session.exploitComplete = true;
                 markProgress?.("RUNTIME-COMPLETE");
                 this.finish(handoff);
 
@@ -1234,6 +1523,20 @@
                 }
                 return session;
             } catch (error) {
+                if (session.exploitComplete) {
+                    try {
+                        NS.PostExploitRecovery?.noteAction(
+                            handoff.firmware, {
+                                actionId: "unified-autoloader",
+                                outcome: "failed"
+                            });
+                    } catch {}
+                    try { this.releaseCompletedResources(session); } catch {}
+                    error.postExploitComplete = true;
+                    error.rebootRequired = false;
+                    error.recoveryDisposition = RECOVERY_DISPOSITIONS.SEALED;
+                    throw error;
+                }
                 const liveWorkers = session.kernel?.pool
                     ? session.kernel.pool.liveWorkerCount() : 0;
                 const expectedLiveWorkers = session.kernel?.resourcePolicy
