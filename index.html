@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="slopkit-build" content="e19d361fc2871e82841ecc593205dde22c173306">
+<meta name="slopkit-build" content="075383e66f4b13e0669edf3f171ed72ac6639a35">
 <title>slopkit</title>
 <!-- Reserved preload placeholder preserves parsed document shape. -->
 <link rel="stylesheet" href="src/theme.css">
@@ -581,6 +581,7 @@ exploitSelect.addEventListener("change", function () {
 optAutoloader.addEventListener("change", saveSettings);
 optDiagnostics.addEventListener("change", function () {
     saveSettings();
+    refresh();
 });
 languageSelect.addEventListener("change", async function () {
     languagePreference = languageSelect.value;
@@ -735,8 +736,13 @@ function refresh() {
         }
     }
 
-    if (latch) error = t(latchDisposition(latch) === "dirty-cold-power-cycle"
-        ? "launcher.status.coldPower" : "launcher.status.reboot");
+    if (latch) {
+        error = t(latchDisposition(latch) === "dirty-cold-power-cycle"
+            ? "launcher.status.coldPower" : "launcher.status.reboot");
+        if (optDiagnostics.checked && latch.reason) {
+            error += ` · ${latch.state || "recorded"}: ${latch.reason}`;
+        }
+    }
 
     setBackgroundControlDisabled(runNode,
         launching || !profile || Boolean(error));
@@ -827,6 +833,19 @@ function failureReason(error) {
 
 function wait(milliseconds) {
     return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function awaitRendererReady(target, documentNode) {
+    if (!target.Slopkit?.I18n)
+        throw new Error("renderer locale bootstrap missing");
+    await target.Slopkit.I18n.ready;
+    const rendererReady = target.Slopkit.RendererReady;
+    if (!rendererReady || typeof rendererReady.then !== "function")
+        throw new Error("renderer readiness handshake missing");
+    await rendererReady;
+    if (documentNode.documentElement.dataset.rendererState
+            !== "unarmed-ready")
+        throw new Error("renderer warmup handshake missing");
 }
 
 async function primeRenderer(target) {
@@ -962,12 +981,8 @@ function warmRenderer(exploitUrl, query, armKey, armRecord) {
                 if (new URLSearchParams(target.location.search).toString()
                     !== warm.toString())
                     throw new Error("renderer warmup query mismatch");
-                if (!target.Slopkit?.I18n)
-                    throw new Error("renderer locale bootstrap missing");
-                await target.Slopkit.I18n.ready;
-                if (documentNode.documentElement.dataset.rendererState
-                    !== "unarmed-ready")
-                    throw new Error("renderer warmup handshake missing");
+                await awaitRendererReady(target, documentNode);
+                if (settled) return;
                 if (target.eval("PLACEMENT_PAIRS") !== PLACEMENT_PAIRS)
                     throw new Error("renderer placement count changed");
                 const result = await primeRenderer(target);

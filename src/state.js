@@ -788,6 +788,11 @@
             state.records.push(record);
             const bucket = ensureBucket(state, exploit, firmware);
             bucket.attempts = addCount(bucket.attempts, 1);
+            // Keep the persisted record order canonical at the write boundary.
+            // Renderer warmup reads the same state from a sibling document;
+            // that read must not need to move this pending record ahead of
+            // older terminal records and trip the launcher's no-mutation gate.
+            compactRecords(state);
             if (!writeStorage(storage, ATTEMPTS_KEY, state))
                 throw new Error("persistent attempt storage is unavailable");
             return cloneRecord(record);
@@ -1151,10 +1156,48 @@
         if (!firmware || !expected || !observed || expected === observed
                 || completionIdentity(record)?.bootId !== expected)
             throw new Error("post-exploit reboot proof is invalid");
+
+        // A sealed completion supersedes any older attempt that was left
+        // pending by a lost renderer navigation. Once a different native boot
+        // is verified, close those historical records before removing the
+        // completion so the launcher cannot resurrect one as a fresh latch.
+        // Pending attempts newer than the successful completion remain intact
+        // and continue to fail closed.
+        const attemptsState = readAttempts(local, true);
+        const completedAttempt = attemptsState.records.find(function (attempt) {
+            return attempt.id === record.attemptId
+                && attempt.status === "success";
+        });
+        const recoveredAttemptIds = [];
+        if (completedAttempt) {
+            const attempts = createAttempts(
+                Object.assign({}, options, { storage: local }));
+            const superseded = attempts.summaries().pending.filter(
+                function (attempt) {
+                    return attempt.firmware === firmware
+                        && attempt.startedAt <= completedAttempt.startedAt;
+                });
+            for (const attempt of superseded) {
+                const milestones = Array.isArray(attempt.milestones)
+                    ? attempt.milestones : [];
+                const result = attempts.recover({
+                    attemptId: attempt.id,
+                    outcome: "interrupted",
+                    terminalStage: milestones.length
+                        ? milestones[milestones.length - 1]
+                        : "verified-reboot",
+                    rebootRequired: false,
+                    recoveryDisposition: "safe-normal-reboot"
+                });
+                for (const recovered of result.recovered)
+                    recoveredAttemptIds.push(recovered.id);
+            }
+        }
         if (!removeStorage(local, postExploitKey(firmware)))
             throw new Error("stale post-exploit completion could not be retired");
         return { firmware, attemptId: record.attemptId,
-            previousBootId: expected, observedBootId: observed };
+            previousBootId: expected, observedBootId: observed,
+            recoveredAttemptIds };
     }
 
     function requestRecord(source) {

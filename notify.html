@@ -3098,7 +3098,9 @@ function initializeRuntimePage() {
     }
 }
 
-Promise.all([localeReady, runtimeDatabaseReady])
+Slopkit.RendererReady = Promise.all([
+    localeReady, runtimeDatabaseReady
+])
     .then(initializeRuntimePage);
 </script>
 </body>
