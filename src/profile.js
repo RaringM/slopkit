@@ -652,25 +652,23 @@
 
     function validateLapseConfig(entry, firmware, metadata) {
         const minimalRuntime = Array.isArray(metadata.supported);
-        const revision = minimalRuntime ? null : requirePath(metadata,
-            "qualificationRevisions.engines.lapse");
-        if (!minimalRuntime && revision !== LAPSE_ENGINE_REVISION)
+        const revision = minimalRuntime ? LAPSE_ENGINE_REVISION
+            : requirePath(metadata, "qualificationRevisions.engines.lapse");
+        if (revision !== LAPSE_ENGINE_REVISION)
             throw new Error(`Lapse engine ${revision} is not implemented`);
         const configs = requirePath(metadata, "lapse.firmwares");
         const config = configs?.[firmware];
         if (!config)
             throw new Error(`profile is missing Lapse configuration ${firmware}`);
-        const fields = ["mainCore",
+        const fields = ["revision", "firmware", "mainCore",
             "mainRtprio", "groomGroups", "spraySockets",
             "alternateSockets", "raceAttempts", "aliasAttempts",
             "leakRecords", "leakRounds", "clobberAttempts",
             "eventHandles", "curprocReadAttempts", "maxAioIds",
             "raceThreadWaitRounds", "rthdrSize", "rthdrMarkerOffset"];
-        if (!minimalRuntime) fields.unshift("revision", "firmware");
         exactObjectKeys(config, fields,
         `Lapse ${firmware} configuration`);
-        if (!minimalRuntime
-            && (config.revision !== revision || config.firmware !== firmware))
+        if (config.revision !== revision || config.firmware !== firmware)
             throw new Error(`Lapse ${firmware} configuration identity is stale`);
         for (const name of ["mainCore", "mainRtprio", "groomGroups",
             "spraySockets", "alternateSockets", "raceAttempts",
@@ -1745,8 +1743,11 @@
         lapseConfig() {
             if (this.exploit !== "lapse")
                 throw new Error("Lapse metadata requested for another exploit");
-            return freezeTree(Object.assign({}, validateLapseConfig(this.raw,
-                this.firmware, this.metadata)));
+            const config = validateLapseConfig(this.raw, this.firmware,
+                this.metadata);
+            if (config.revision !== this._qualification?.engineRevision)
+                throw new Error(`Lapse ${this.firmware} configuration identity is stale`);
+            return freezeTree(Object.assign({}, config));
         }
         p2jbConfig() {
             if (this.exploit !== "p2jb")
